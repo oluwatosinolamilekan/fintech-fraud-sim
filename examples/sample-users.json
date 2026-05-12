@@ -1,0 +1,36 @@
+[
+  {
+    "user_id": "usr_693649_684895",
+    "country": "NG",
+    "account_age_days": 9,
+    "kyc_status": "verified",
+    "failed_kyc_attempts": 0,
+    "device_count": 4,
+    "ip_country": "NG",
+    "declared_country": "NG",
+    "failed_login_attempts_24h": 1,
+    "beneficiary_count_24h": 22,
+    "chargeback_count": 0,
+    "is_fraud": true,
+    "fraud_pattern": "mule_account",
+    "risk_label": "critical",
+    "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
+  },
+  {
+    "user_id": "usr_197654_421220",
+    "country": "NG",
+    "account_age_days": 814,
+    "kyc_status": "verified",
+    "failed_kyc_attempts": 0,
+    "device_count": 1,
+    "ip_country": "NG",
+    "declared_country": "NG",
+    "failed_login_attempts_24h": 1,
+    "beneficiary_count_24h": 0,
+    "chargeback_count": 0,
+    "is_fraud": false,
+    "fraud_pattern": "none",
+    "risk_label": "low",
+    "reason_codes": []
+  }
+]

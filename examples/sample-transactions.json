@@ -1,0 +1,34 @@
+[
+  {
+    "transaction_id": "txn_616304_629760",
+    "user_id": "usr_693649_684895",
+    "timestamp": "2026-01-02T17:52:00.000Z",
+    "amount": 1250050.28,
+    "currency": "NGN",
+    "channel": "mobile_app",
+    "beneficiary_id": "bene_550156_152713",
+    "beneficiary_country": "NG",
+    "device_id": "dev_561681_118099",
+    "ip_country": "NG",
+    "status": "completed",
+    "is_suspicious": true,
+    "fraud_pattern": "mule_account",
+    "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
+  },
+  {
+    "transaction_id": "txn_744002_705195",
+    "user_id": "usr_197654_421220",
+    "timestamp": "2025-12-18T01:21:00.000Z",
+    "amount": 18150.44,
+    "currency": "NGN",
+    "channel": "ussd",
+    "beneficiary_id": "bene_237511_614818",
+    "beneficiary_country": "NG",
+    "device_id": "dev_842191_700251",
+    "ip_country": "NG",
+    "status": "completed",
+    "is_suspicious": false,
+    "fraud_pattern": "none",
+    "reason_codes": []
+  }
+]
