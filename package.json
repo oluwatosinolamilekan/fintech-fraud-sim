@@ -1,8 +1,10 @@
 {
   "name": "fintech-fraud-sim",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Synthetic fintech user and transaction fraud simulation CLI for testing fraud systems.",
   "type": "module",
+  "author": "Lamidi Olamilekan",
+  "packageManager": "npm@11.3.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,6 +16,10 @@
   },
   "bin": {
     "fintech-fraud-sim": "./dist/cli.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "dist",
@@ -37,15 +43,14 @@
     "csv",
     "json"
   ],
-  "author": "",
   "license": "MIT",
   "dependencies": {
-    "@faker-js/faker": "^9.9.0",
-    "commander": "^12.1.0"
+    "@faker-js/faker": "9.9.0",
+    "commander": "12.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.17.2",
-    "typescript": "^5.9.2"
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=18.18"

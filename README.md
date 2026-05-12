@@ -1,6 +1,6 @@
 # fintech-fraud-sim
 
-[![Socket Badge](https://badge.socket.dev/npm/package/fintech-fraud-sim/0.1.1)](https://badge.socket.dev/npm/package/fintech-fraud-sim/0.1.1)
+[![Socket Badge](https://badge.socket.dev/npm/package/fintech-fraud-sim/0.1.2)](https://badge.socket.dev/npm/package/fintech-fraud-sim/0.1.2)
 
 `fintech-fraud-sim` is a TypeScript CLI for generating synthetic fintech users and transactions with configurable suspicious fraud patterns. It is designed for testing fraud detection systems, dashboards, rule engines, QA pipelines, risk scoring packages, and model prototypes.
 
