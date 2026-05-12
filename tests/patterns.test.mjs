@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { applyFraudPattern, PATTERN_REASON_CODES } from '../src/patterns.js';
-import { SyntheticUser } from '../src/types.js';
-import { parsePatterns, SimRandom } from '../src/utils.js';
+import { applyFraudPattern, PATTERN_REASON_CODES } from '../dist/patterns.js';
+import { parsePatterns, SimRandom } from '../dist/utils.js';
 
-const baseUser: SyntheticUser = {
+const baseUser = {
   user_id: 'usr_test',
   country: 'NG',
   account_age_days: 400,

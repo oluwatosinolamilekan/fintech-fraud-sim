@@ -1,6 +1,6 @@
 {
   "name": "fintech-fraud-sim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Synthetic fintech user and transaction fraud simulation CLI for testing fraud systems.",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,10 +24,9 @@
   "scripts": {
     "build": "tsc",
     "pretest": "tsc",
-    "test": "node --import tsx --test tests/*.test.ts",
-    "test:vitest": "vitest run",
-    "dev": "tsx src/cli.ts",
-    "prepublishOnly": "tsc && node --import tsx --test tests/*.test.ts"
+    "test": "node --test tests/*.test.mjs",
+    "dev": "tsc && node dist/cli.js",
+    "prepublishOnly": "tsc && node --test tests/*.test.mjs"
   },
   "keywords": [
     "fraud",
@@ -46,9 +45,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.17.2",
-    "tsx": "^4.20.3",
-    "typescript": "^5.9.2",
-    "vitest": "^2.1.9"
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.18"

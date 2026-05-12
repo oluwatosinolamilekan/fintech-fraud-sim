@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { generateDataset } from '../src/generator.js';
-import { writeCsv } from '../src/writers/csv.js';
-import { writeJson } from '../src/writers/json.js';
+import { generateDataset } from '../dist/generator.js';
+import { writeCsv } from '../dist/writers/csv.js';
+import { writeJson } from '../dist/writers/json.js';
 
 describe('file writers', () => {
   it('writes CSV and JSON outputs', async () => {

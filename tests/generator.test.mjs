@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { generateDataset } from '../src/generator.js';
-import { GenerateOptions } from '../src/types.js';
+import { generateDataset } from '../dist/generator.js';
 
-const baseOptions: GenerateOptions = {
+const baseOptions = {
   users: 100,
   fraudRate: 0.1,
   format: 'both',
