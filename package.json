@@ -3,11 +3,21 @@
   "version": "0.1.0",
   "description": "Synthetic fintech user and transaction fraud simulation CLI for testing fraud systems.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "fintech-fraud-sim": "./dist/cli.js"
   },
   "files": [
     "dist",
+    "examples",
     "README.md",
     "LICENSE"
   ],
