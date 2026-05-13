@@ -39,8 +39,8 @@
     "pretest": "tsc",
     "test": "node --test tests/*.test.mjs",
     "dev": "tsc && node dist/cli.js",
-    "publish:ci": "npm publish --provenance --access public",
-    "publish:local": "npm publish --access public",
+    "publish:ci": "npm run build && node --test tests/*.test.mjs && npm publish --ignore-scripts --provenance --access public",
+    "publish:local": "npm run build && node --test tests/*.test.mjs && npm publish --ignore-scripts --access public",
     "prepublishOnly": "tsc && node --test tests/*.test.mjs"
   },
   "keywords": [
