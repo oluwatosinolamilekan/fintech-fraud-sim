@@ -5,6 +5,14 @@
   "type": "module",
   "author": "Lamidi Olamilekan",
   "packageManager": "npm@11.3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oluwatosinolamilekan/Scoriva.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oluwatosinolamilekan/Scoriva/issues"
+  },
+  "homepage": "https://github.com/oluwatosinolamilekan/Scoriva#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +23,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "fintech-fraud-sim": "./dist/cli.js"
+    "fintech-fraud-sim": "dist/cli.js"
   },
   "publishConfig": {
     "access": "public",
