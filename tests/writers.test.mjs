@@ -29,6 +29,8 @@ describe('file writers', () => {
       await writeJson(dataset, out, true);
 
       assert.match(await readFile(join(out, 'users.csv'), 'utf8'), /user_id,country/);
+      assert.match(await readFile(join(out, 'users.csv'), 'utf8'), /risk_score,recommended_action/);
+      assert.match(await readFile(join(out, 'transactions.csv'), 'utf8'), /risk_score,recommended_action/);
       assert.equal(JSON.parse(await readFile(join(out, 'users.json'), 'utf8')).length, 5);
       assert.equal(JSON.parse(await readFile(join(out, 'summary.json'), 'utf8')).total_users, 5);
     } finally {

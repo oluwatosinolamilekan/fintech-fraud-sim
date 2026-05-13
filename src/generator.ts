@@ -1,5 +1,6 @@
 import { SyntheticUser, GeneratedDataset, GenerateOptions } from './types.js';
 import { applyFraudPattern, makeTransactionForUser, transactionCountForUser } from './patterns.js';
+import { actionForRiskScore, scoreUserRisk } from './risk.js';
 import {
   countryOtherThan,
   normalizeCountry,
@@ -22,7 +23,13 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
   for (let index = 0; index < options.users; index += 1) {
     const pattern = rng.pick(options.patterns);
     const baseUser = makeBaseUser(country, rng);
-    users.push(fraudIndexes.has(index) ? applyFraudPattern(baseUser, pattern, rng) : baseUser);
+    const user = fraudIndexes.has(index) ? applyFraudPattern(baseUser, pattern, rng) : baseUser;
+    const riskScore = scoreUserRisk(user);
+    users.push({
+      ...user,
+      risk_score: riskScore,
+      recommended_action: actionForRiskScore(riskScore)
+    });
   }
 
   const transactions = users.flatMap((user) =>
@@ -79,6 +86,8 @@ function makeBaseUser(country: string, rng: SimRandom): SyntheticUser {
     is_fraud: false,
     fraud_pattern: 'none',
     risk_label: rng.bool(0.85) ? 'low' : 'medium',
+    risk_score: 0,
+    recommended_action: 'allow',
     reason_codes: []
   };
 }

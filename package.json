@@ -1,18 +1,18 @@
 {
   "name": "fintech-fraud-sim",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Synthetic fintech user and transaction fraud simulation CLI for testing fraud systems.",
   "type": "module",
   "author": "Lamidi Olamilekan",
   "packageManager": "npm@11.3.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oluwatosinolamilekan/Scoriva.git"
+    "url": "git+https://github.com/oluwatosinolamilekan/fintech-fraud-sim.git"
   },
   "bugs": {
-    "url": "https://github.com/oluwatosinolamilekan/Scoriva/issues"
+    "url": "https://github.com/oluwatosinolamilekan/fintech-fraud-sim/issues"
   },
-  "homepage": "https://github.com/oluwatosinolamilekan/Scoriva#readme",
+  "homepage": "https://github.com/oluwatosinolamilekan/fintech-fraud-sim#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
