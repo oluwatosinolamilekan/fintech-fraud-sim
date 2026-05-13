@@ -17,6 +17,8 @@ const USER_FIELDS: (keyof SyntheticUser)[] = [
   'is_fraud',
   'fraud_pattern',
   'risk_label',
+  'risk_score',
+  'recommended_action',
   'reason_codes'
 ];
 
@@ -34,6 +36,8 @@ const TRANSACTION_FIELDS: (keyof SyntheticTransaction)[] = [
   'status',
   'is_suspicious',
   'fraud_pattern',
+  'risk_score',
+  'recommended_action',
   'reason_codes'
 ];
 

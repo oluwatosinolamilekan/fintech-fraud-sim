@@ -26,6 +26,13 @@ describe('generateDataset', () => {
     assert.equal(dataset.summary.fraud_rate_requested, 0.1);
     assert.equal(dataset.summary.fraud_users_generated, 10);
     assert.ok(dataset.summary.suspicious_transactions_generated > 0);
+    assert.equal(dataset.users.every((user) => Number.isInteger(user.risk_score)), true);
+    assert.equal(dataset.users.every((user) => ['allow', 'review', 'block'].includes(user.recommended_action)), true);
+    assert.equal(dataset.transactions.every((transaction) => Number.isInteger(transaction.risk_score)), true);
+    assert.equal(
+      dataset.transactions.every((transaction) => ['allow', 'review', 'block'].includes(transaction.recommended_action)),
+      true
+    );
   });
 
   it('generates deterministic output when seed is provided', () => {

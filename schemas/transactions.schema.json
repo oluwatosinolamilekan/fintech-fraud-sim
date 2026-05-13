@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim transaction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transaction_id",
+    "user_id",
+    "timestamp",
+    "amount",
+    "currency",
+    "channel",
+    "beneficiary_id",
+    "beneficiary_country",
+    "device_id",
+    "ip_country",
+    "status",
+    "is_suspicious",
+    "fraud_pattern",
+    "risk_score",
+    "recommended_action",
+    "reason_codes"
+  ],
+  "properties": {
+    "transaction_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3
+    },
+    "channel": {
+      "enum": [
+        "mobile_app",
+        "web",
+        "api",
+        "pos",
+        "ussd"
+      ]
+    },
+    "beneficiary_id": {
+      "type": "string"
+    },
+    "beneficiary_country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "ip_country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "pending",
+        "failed",
+        "reversed"
+      ]
+    },
+    "is_suspicious": {
+      "type": "boolean"
+    },
+    "fraud_pattern": {
+      "enum": [
+        "none",
+        "mule_account",
+        "account_takeover",
+        "velocity_abuse",
+        "kyc_abuse",
+        "chargeback_risk",
+        "transaction_spike",
+        "cross_border_anomaly",
+        "beneficiary_burst"
+      ]
+    },
+    "risk_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "recommended_action": {
+      "enum": [
+        "allow",
+        "review",
+        "block"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ export type FraudPattern = (typeof FRAUD_PATTERNS)[number];
 export type OutputFormat = 'csv' | 'json' | 'both';
 export type KycStatus = 'verified' | 'pending' | 'rejected';
 export type RiskLabel = 'low' | 'medium' | 'high' | 'critical';
+export type RecommendedAction = 'allow' | 'review' | 'block';
 export type TransactionStatus = 'completed' | 'pending' | 'failed' | 'reversed';
 export type Channel = 'mobile_app' | 'web' | 'api' | 'pos' | 'ussd';
 
@@ -45,6 +46,8 @@ export interface SyntheticUser {
   is_fraud: boolean;
   fraud_pattern: FraudPattern | 'none';
   risk_label: RiskLabel;
+  risk_score: number;
+  recommended_action: RecommendedAction;
   reason_codes: string[];
 }
 
@@ -62,6 +65,8 @@ export interface SyntheticTransaction {
   status: TransactionStatus;
   is_suspicious: boolean;
   fraud_pattern: FraudPattern | 'none';
+  risk_score: number;
+  recommended_action: RecommendedAction;
   reason_codes: string[];
 }
 

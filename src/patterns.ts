@@ -7,6 +7,7 @@ import {
   SyntheticUser,
   TransactionStatus
 } from './types.js';
+import { actionForRiskScore, scoreTransactionRisk } from './risk.js';
 import { countryOtherThan, currencyMinorUnits, REVIEW_THRESHOLD, SimRandom, syntheticId } from './utils.js';
 
 const HIGH_RISK_STATUSES: TransactionStatus[] = ['completed', 'pending', 'reversed'];
@@ -151,7 +152,7 @@ export function makeTransactionForUser(
     ? rng.int(0, 180)
     : rng.int(0, 60 * 24 * 60);
 
-  return {
+  const transactionWithoutRisk: Omit<SyntheticTransaction, 'risk_score' | 'recommended_action'> = {
     transaction_id: syntheticId('txn', rng),
     user_id: user.user_id,
     timestamp: new Date(baseTimeMs - minutesAgo * 60_000).toISOString(),
@@ -166,6 +167,13 @@ export function makeTransactionForUser(
     is_suspicious: isSuspicious,
     fraud_pattern: isSuspicious && user.is_fraud ? pattern : 'none',
     reason_codes: reasonCodes
+  };
+  const riskScore = scoreTransactionRisk(transactionWithoutRisk, user);
+
+  return {
+    ...transactionWithoutRisk,
+    risk_score: riskScore,
+    recommended_action: actionForRiskScore(riskScore)
   };
 }
 

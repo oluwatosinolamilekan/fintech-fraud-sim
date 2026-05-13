@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim user",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "user_id",
+    "country",
+    "account_age_days",
+    "kyc_status",
+    "failed_kyc_attempts",
+    "device_count",
+    "ip_country",
+    "declared_country",
+    "failed_login_attempts_24h",
+    "beneficiary_count_24h",
+    "chargeback_count",
+    "is_fraud",
+    "fraud_pattern",
+    "risk_label",
+    "risk_score",
+    "recommended_action",
+    "reason_codes"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "account_age_days": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "kyc_status": {
+      "enum": [
+        "verified",
+        "pending",
+        "rejected"
+      ]
+    },
+    "failed_kyc_attempts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "device_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ip_country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "declared_country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "failed_login_attempts_24h": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "beneficiary_count_24h": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "chargeback_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "is_fraud": {
+      "type": "boolean"
+    },
+    "fraud_pattern": {
+      "enum": [
+        "none",
+        "mule_account",
+        "account_takeover",
+        "velocity_abuse",
+        "kyc_abuse",
+        "chargeback_risk",
+        "transaction_spike",
+        "cross_border_anomaly",
+        "beneficiary_burst"
+      ]
+    },
+    "risk_label": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "risk_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "recommended_action": {
+      "enum": [
+        "allow",
+        "review",
+        "block"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

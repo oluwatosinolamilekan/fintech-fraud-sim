@@ -13,6 +13,8 @@ npx fintech-fraud-sim generate --users 5000 --fraud-rate 0.12 --format csv
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format json --out ./data
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
+npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
+npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 ```
 
 Local development:
@@ -25,6 +27,8 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 ```
 
 ## CLI Options
+
+### `generate`
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -39,6 +43,24 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | `--transactions-min <number>` | `1` | Minimum transactions per non-fraud user. |
 | `--transactions-max <number>` | `20` | Maximum transactions per non-fraud user. |
 | `--pretty` | `false` | Format JSON output with indentation. |
+
+### `preview`
+
+Prints a small generated sample to stdout without writing files. It supports the same generation options as `generate`, plus:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--limit <number>` | `5` | Number of sample users and transactions to print. |
+
+### `schema`
+
+Prints or exports JSON Schema files for the generated dataset.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--target <users\|transactions\|summary\|all>` | `all` | Schema target to print or export. |
+| `--out <path>` | none | Directory to write schema files. Prints to stdout when omitted. |
+| `--pretty` | `false` | Format schema JSON with indentation. |
 
 ## Output Files
 
@@ -72,11 +94,21 @@ summary.json
 
 ## Generated User Fields
 
-`user_id`, `country`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `reason_codes`.
+`user_id`, `country`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`.
 
 ## Generated Transaction Fields
 
-`transaction_id`, `user_id`, `timestamp`, `amount`, `currency`, `channel`, `beneficiary_id`, `beneficiary_country`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `reason_codes`.
+`transaction_id`, `user_id`, `timestamp`, `amount`, `currency`, `channel`, `beneficiary_id`, `beneficiary_country`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
+
+## Risk Scoring
+
+Generated users and transactions include a `risk_score` from `0` to `100` and a `recommended_action`:
+
+| Action | Score Range | Typical Use |
+| --- | --- | --- |
+| `allow` | `0-44` | Low-risk records for normal test traffic. |
+| `review` | `45-74` | Queues for manual review, rules testing, and dashboard triage. |
+| `block` | `75-100` | High-risk fraud simulations for decline/block flows. |
 
 ## Fraud Patterns
 
@@ -111,6 +143,8 @@ User:
   "is_fraud": true,
   "fraud_pattern": "mule_account",
   "risk_label": "critical",
+  "risk_score": 100,
+  "recommended_action": "block",
   "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
 }
 ```
@@ -132,6 +166,8 @@ Transaction:
   "status": "completed",
   "is_suspicious": true,
   "fraud_pattern": "mule_account",
+  "risk_score": 96,
+  "recommended_action": "block",
   "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
 }
 ```
