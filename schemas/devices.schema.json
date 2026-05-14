@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim device",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "device_id",
+    "user_id",
+    "device_type",
+    "os",
+    "first_seen_at",
+    "last_seen_at",
+    "country",
+    "is_trusted",
+    "is_fraud_linked"
+  ],
+  "properties": {
+    "device_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "device_type": {
+      "enum": [
+        "android",
+        "ios",
+        "web",
+        "pos_terminal"
+      ]
+    },
+    "os": {
+      "type": "string"
+    },
+    "first_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "is_trusted": {
+      "type": "boolean"
+    },
+    "is_fraud_linked": {
+      "type": "boolean"
+    }
+  }
+}

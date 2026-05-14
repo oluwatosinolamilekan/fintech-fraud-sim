@@ -5,6 +5,10 @@
   "additionalProperties": false,
   "required": [
     "total_users",
+    "total_accounts",
+    "total_devices",
+    "total_beneficiaries",
+    "total_merchants",
     "total_transactions",
     "fraud_rate_requested",
     "fraud_users_generated",
@@ -15,6 +19,22 @@
   ],
   "properties": {
     "total_users": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_accounts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_devices": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_beneficiaries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_merchants": {
       "type": "integer",
       "minimum": 0
     },

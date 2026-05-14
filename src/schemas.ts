@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export type SchemaTarget = 'users' | 'transactions' | 'summary' | 'all';
+export type SchemaTarget = 'users' | 'accounts' | 'devices' | 'beneficiaries' | 'merchants' | 'transactions' | 'summary' | 'all';
 
 type JsonSchema = Record<string, unknown>;
 
@@ -70,12 +70,14 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
   required: [
     'transaction_id',
     'user_id',
+    'account_id',
     'timestamp',
     'amount',
     'currency',
     'channel',
     'beneficiary_id',
     'beneficiary_country',
+    'merchant_id',
     'device_id',
     'ip_country',
     'status',
@@ -88,12 +90,14 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
   properties: {
     transaction_id: { type: 'string' },
     user_id: { type: 'string' },
+    account_id: { type: 'string' },
     timestamp: { type: 'string', format: 'date-time' },
     amount: { type: 'number', minimum: 0 },
     currency: { type: 'string', minLength: 3 },
     channel: { enum: ['mobile_app', 'web', 'api', 'pos', 'ussd'] },
     beneficiary_id: { type: 'string' },
     beneficiary_country: { type: 'string', minLength: 2, maxLength: 2 },
+    merchant_id: { type: 'string' },
     device_id: { type: 'string' },
     ip_country: { type: 'string', minLength: 2, maxLength: 2 },
     status: { enum: ['completed', 'pending', 'failed', 'reversed'] },
@@ -117,6 +121,78 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
   }
 };
 
+export const ACCOUNT_SCHEMA: JsonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'fintech-fraud-sim account',
+  type: 'object',
+  additionalProperties: false,
+  required: ['account_id', 'user_id', 'account_type', 'currency', 'balance', 'status', 'opened_at', 'daily_limit', 'is_fraud_linked'],
+  properties: {
+    account_id: { type: 'string' },
+    user_id: { type: 'string' },
+    account_type: { enum: ['wallet', 'savings', 'current'] },
+    currency: { type: 'string', minLength: 3 },
+    balance: { type: 'number', minimum: 0 },
+    status: { enum: ['active', 'restricted', 'closed'] },
+    opened_at: { type: 'string', format: 'date-time' },
+    daily_limit: { type: 'number', minimum: 0 },
+    is_fraud_linked: { type: 'boolean' }
+  }
+};
+
+export const DEVICE_SCHEMA: JsonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'fintech-fraud-sim device',
+  type: 'object',
+  additionalProperties: false,
+  required: ['device_id', 'user_id', 'device_type', 'os', 'first_seen_at', 'last_seen_at', 'country', 'is_trusted', 'is_fraud_linked'],
+  properties: {
+    device_id: { type: 'string' },
+    user_id: { type: 'string' },
+    device_type: { enum: ['android', 'ios', 'web', 'pos_terminal'] },
+    os: { type: 'string' },
+    first_seen_at: { type: 'string', format: 'date-time' },
+    last_seen_at: { type: 'string', format: 'date-time' },
+    country: { type: 'string', minLength: 2, maxLength: 2 },
+    is_trusted: { type: 'boolean' },
+    is_fraud_linked: { type: 'boolean' }
+  }
+};
+
+export const BENEFICIARY_SCHEMA: JsonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'fintech-fraud-sim beneficiary',
+  type: 'object',
+  additionalProperties: false,
+  required: ['beneficiary_id', 'user_id', 'beneficiary_type', 'beneficiary_country', 'bank_code', 'added_at', 'is_recent', 'is_fraud_linked'],
+  properties: {
+    beneficiary_id: { type: 'string' },
+    user_id: { type: 'string' },
+    beneficiary_type: { enum: ['bank_account', 'wallet', 'card'] },
+    beneficiary_country: { type: 'string', minLength: 2, maxLength: 2 },
+    bank_code: { type: 'string' },
+    added_at: { type: 'string', format: 'date-time' },
+    is_recent: { type: 'boolean' },
+    is_fraud_linked: { type: 'boolean' }
+  }
+};
+
+export const MERCHANT_SCHEMA: JsonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'fintech-fraud-sim merchant',
+  type: 'object',
+  additionalProperties: false,
+  required: ['merchant_id', 'merchant_name', 'category', 'country', 'risk_tier', 'is_high_risk'],
+  properties: {
+    merchant_id: { type: 'string' },
+    merchant_name: { type: 'string' },
+    category: { enum: ['airtime', 'bill_payments', 'ecommerce', 'gaming', 'groceries', 'travel'] },
+    country: { type: 'string', minLength: 2, maxLength: 2 },
+    risk_tier: { enum: ['low', 'medium', 'high', 'critical'] },
+    is_high_risk: { type: 'boolean' }
+  }
+};
+
 export const SUMMARY_SCHEMA: JsonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'fintech-fraud-sim summary',
@@ -124,6 +200,10 @@ export const SUMMARY_SCHEMA: JsonSchema = {
   additionalProperties: false,
   required: [
     'total_users',
+    'total_accounts',
+    'total_devices',
+    'total_beneficiaries',
+    'total_merchants',
     'total_transactions',
     'fraud_rate_requested',
     'fraud_users_generated',
@@ -134,6 +214,10 @@ export const SUMMARY_SCHEMA: JsonSchema = {
   ],
   properties: {
     total_users: { type: 'integer', minimum: 0 },
+    total_accounts: { type: 'integer', minimum: 0 },
+    total_devices: { type: 'integer', minimum: 0 },
+    total_beneficiaries: { type: 'integer', minimum: 0 },
+    total_merchants: { type: 'integer', minimum: 0 },
     total_transactions: { type: 'integer', minimum: 0 },
     fraud_rate_requested: { type: 'number', minimum: 0, maximum: 1 },
     fraud_users_generated: { type: 'integer', minimum: 0 },
@@ -146,10 +230,18 @@ export const SUMMARY_SCHEMA: JsonSchema = {
 
 export function getSchemas(target: SchemaTarget): JsonSchema | Record<string, JsonSchema> {
   if (target === 'users') return USER_SCHEMA;
+  if (target === 'accounts') return ACCOUNT_SCHEMA;
+  if (target === 'devices') return DEVICE_SCHEMA;
+  if (target === 'beneficiaries') return BENEFICIARY_SCHEMA;
+  if (target === 'merchants') return MERCHANT_SCHEMA;
   if (target === 'transactions') return TRANSACTION_SCHEMA;
   if (target === 'summary') return SUMMARY_SCHEMA;
   return {
     users: USER_SCHEMA,
+    accounts: ACCOUNT_SCHEMA,
+    devices: DEVICE_SCHEMA,
+    beneficiaries: BENEFICIARY_SCHEMA,
+    merchants: MERCHANT_SCHEMA,
     transactions: TRANSACTION_SCHEMA,
     summary: SUMMARY_SCHEMA
   };
@@ -161,6 +253,10 @@ export async function writeSchemas(target: SchemaTarget, outDir: string, pretty 
   if (target === 'all') {
     await Promise.all([
       writeFile(join(outDir, 'users.schema.json'), JSON.stringify(USER_SCHEMA, null, spaces)),
+      writeFile(join(outDir, 'accounts.schema.json'), JSON.stringify(ACCOUNT_SCHEMA, null, spaces)),
+      writeFile(join(outDir, 'devices.schema.json'), JSON.stringify(DEVICE_SCHEMA, null, spaces)),
+      writeFile(join(outDir, 'beneficiaries.schema.json'), JSON.stringify(BENEFICIARY_SCHEMA, null, spaces)),
+      writeFile(join(outDir, 'merchants.schema.json'), JSON.stringify(MERCHANT_SCHEMA, null, spaces)),
       writeFile(join(outDir, 'transactions.schema.json'), JSON.stringify(TRANSACTION_SCHEMA, null, spaces)),
       writeFile(join(outDir, 'summary.schema.json'), JSON.stringify(SUMMARY_SCHEMA, null, spaces))
     ]);

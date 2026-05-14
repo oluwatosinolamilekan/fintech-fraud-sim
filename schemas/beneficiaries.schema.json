@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim beneficiary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "beneficiary_id",
+    "user_id",
+    "beneficiary_type",
+    "beneficiary_country",
+    "bank_code",
+    "added_at",
+    "is_recent",
+    "is_fraud_linked"
+  ],
+  "properties": {
+    "beneficiary_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "beneficiary_type": {
+      "enum": [
+        "bank_account",
+        "wallet",
+        "card"
+      ]
+    },
+    "beneficiary_country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "bank_code": {
+      "type": "string"
+    },
+    "added_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_recent": {
+      "type": "boolean"
+    },
+    "is_fraud_linked": {
+      "type": "boolean"
+    }
+  }
+}

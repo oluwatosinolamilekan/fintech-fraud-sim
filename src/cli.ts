@@ -6,6 +6,8 @@ import { generateDataset } from './generator.js';
 import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
+import { writeNdjson } from './writers/ndjson.js';
+import { writeSql } from './writers/sql.js';
 import { GenerateOptions } from './types.js';
 import type { SchemaTarget } from './schemas.js';
 import { parseOutputFormat, parsePatterns, toInteger, toNumber, validateGenerateOptions } from './utils.js';
@@ -25,7 +27,7 @@ program
   .addHelpText('after', '\nRisk scoring fields are included in generated users and transactions.')
   .option('--users <number>', 'number of users to generate', parseIntegerOption('--users'), 1000)
   .option('--fraud-rate <number>', 'fraction of users to label as fraud, between 0 and 1', parseNumberOption('--fraud-rate'), 0.05)
-  .option('--format <csv|json|both>', 'output format', 'both')
+  .option('--format <csv|json|ndjson|sql|both|all>', 'output format', 'both')
   .option('--out <path>', 'output directory', './output')
   .option('--country <code>', 'default 2-letter country code', 'NG')
   .option('--currency <code>', 'transaction currency code', 'NGN')
@@ -39,11 +41,17 @@ program
       const options = buildGenerateOptions(rawOptions);
       const dataset = generateDataset(options);
 
-      if (options.format === 'csv' || options.format === 'both') {
+      if (options.format === 'csv' || options.format === 'both' || options.format === 'all') {
         await writeCsv(dataset, options.out);
       }
-      if (options.format === 'json' || options.format === 'both') {
+      if (options.format === 'json' || options.format === 'both' || options.format === 'all') {
         await writeJson(dataset, options.out, options.pretty);
+      }
+      if (options.format === 'ndjson' || options.format === 'all') {
+        await writeNdjson(dataset, options.out);
+      }
+      if (options.format === 'sql' || options.format === 'all') {
+        await writeSql(dataset, options.out);
       }
 
       console.log(`Generated ${dataset.summary.total_users} users and ${dataset.summary.total_transactions} transactions in ${options.out}`);
@@ -98,7 +106,7 @@ program
 program
   .command('schema')
   .description('Print or export JSON Schema files for generated data.')
-  .option('--target <users|transactions|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
+  .option('--target <users|accounts|devices|beneficiaries|merchants|transactions|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
   .option('--out <path>', 'directory to write schema files instead of printing to stdout')
   .option('--pretty', 'write formatted JSON output', false)
   .action(async (rawOptions) => {
@@ -162,8 +170,17 @@ function parseNumberOption(flag: string) {
 
 function parseSchemaTargetOption(value: string): SchemaTarget {
   const target = value.toLowerCase();
-  if (target !== 'users' && target !== 'transactions' && target !== 'summary' && target !== 'all') {
-    throw new InvalidArgumentError('--target must be one of: users, transactions, summary, all');
+  if (
+    target !== 'users' &&
+    target !== 'accounts' &&
+    target !== 'devices' &&
+    target !== 'beneficiaries' &&
+    target !== 'merchants' &&
+    target !== 'transactions' &&
+    target !== 'summary' &&
+    target !== 'all'
+  ) {
+    throw new InvalidArgumentError('--target must be one of: users, accounts, devices, beneficiaries, merchants, transactions, summary, all');
   }
   return target;
 }

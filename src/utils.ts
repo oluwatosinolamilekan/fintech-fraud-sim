@@ -98,8 +98,8 @@ function normalizePatternAlias(pattern: string): string {
 
 export function parseOutputFormat(value: string): OutputFormat {
   const format = value.toLowerCase();
-  if (format !== 'csv' && format !== 'json' && format !== 'both') {
-    throw new Error('--format must be one of: csv, json, both');
+  if (format !== 'csv' && format !== 'json' && format !== 'ndjson' && format !== 'sql' && format !== 'both' && format !== 'all') {
+    throw new Error('--format must be one of: csv, json, ndjson, sql, both, all');
   }
   return format;
 }

@@ -38,8 +38,11 @@ describe('CLI', () => {
       assert.match(result.stdout, /Generated 20 users/);
       const summary = JSON.parse(await readFile(join(out, 'summary.json'), 'utf8'));
       const users = JSON.parse(await readFile(join(out, 'users.json'), 'utf8'));
+      const accounts = JSON.parse(await readFile(join(out, 'accounts.json'), 'utf8'));
       assert.equal(summary.total_users, 20);
+      assert.equal(summary.total_accounts, 20);
       assert.equal(summary.fraud_users_generated, 4);
+      assert.equal(accounts.length, 20);
       assert.equal(typeof users[0].risk_score, 'number');
       assert.ok(['allow', 'review', 'block'].includes(users[0].recommended_action));
     } finally {
@@ -87,6 +90,7 @@ describe('CLI', () => {
 
       await execFileAsync(process.execPath, ['dist/cli.js', 'schema', '--target', 'all', '--out', out]);
       assert.equal(JSON.parse(await readFile(join(out, 'users.schema.json'), 'utf8')).title, 'fintech-fraud-sim user');
+      assert.equal(JSON.parse(await readFile(join(out, 'accounts.schema.json'), 'utf8')).title, 'fintech-fraud-sim account');
       assert.equal(
         JSON.parse(await readFile(join(out, 'transactions.schema.json'), 'utf8')).title,
         'fintech-fraud-sim transaction'

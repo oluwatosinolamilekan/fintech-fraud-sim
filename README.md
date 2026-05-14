@@ -11,6 +11,8 @@ The generated data is synthetic only. It does not include real names, phone numb
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08
 npx fintech-fraud-sim generate --users 5000 --fraud-rate 0.12 --format csv
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format json --out ./data
+npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format ndjson --out ./stream-data
+npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format sql --out ./db-seed
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
@@ -34,7 +36,7 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | --- | --- | --- |
 | `--users <number>` | `1000` | Number of synthetic users to generate. |
 | `--fraud-rate <number>` | `0.05` | Fraction of users marked as fraud, between `0` and `1`. |
-| `--format <csv\|json\|both>` | `both` | Output file format. |
+| `--format <csv\|json\|ndjson\|sql\|both\|all>` | `both` | Output file format. `both` writes CSV and JSON; `all` writes CSV, JSON, NDJSON, and SQL inserts. |
 | `--out <path>` | `./output` | Output directory. |
 | `--country <code>` | `NG` | Default 2-letter country code. |
 | `--currency <code>` | `NGN` | Transaction currency code. |
@@ -58,7 +60,7 @@ Prints or exports JSON Schema files for the generated dataset.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--target <users\|transactions\|summary\|all>` | `all` | Schema target to print or export. |
+| `--target <users\|accounts\|devices\|beneficiaries\|merchants\|transactions\|summary\|all>` | `all` | Schema target to print or export. |
 | `--out <path>` | none | Directory to write schema files. Prints to stdout when omitted. |
 | `--pretty` | `false` | Format schema JSON with indentation. |
 
@@ -68,17 +70,39 @@ Depending on `--format`, the CLI writes:
 
 ```text
 users.csv
+accounts.csv
+devices.csv
+beneficiaries.csv
+merchants.csv
 transactions.csv
 users.json
+accounts.json
+devices.json
+beneficiaries.json
+merchants.json
 transactions.json
 summary.json
+users.ndjson
+accounts.ndjson
+devices.ndjson
+beneficiaries.ndjson
+merchants.ndjson
+transactions.ndjson
+summary.ndjson
+dataset.sql
 ```
+
+Parquet is intentionally not emitted yet; it is planned for a later data/ML-team focused release.
 
 `summary.json` includes:
 
 ```json
 {
   "total_users": 1000,
+  "total_accounts": 1000,
+  "total_devices": 2180,
+  "total_beneficiaries": 4620,
+  "total_merchants": 125,
   "total_transactions": 12850,
   "fraud_rate_requested": 0.08,
   "fraud_users_generated": 80,
@@ -96,9 +120,25 @@ summary.json
 
 `user_id`, `country`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`.
 
+## Generated Account Fields
+
+`account_id`, `user_id`, `account_type`, `currency`, `balance`, `status`, `opened_at`, `daily_limit`, `is_fraud_linked`.
+
+## Generated Device Fields
+
+`device_id`, `user_id`, `device_type`, `os`, `first_seen_at`, `last_seen_at`, `country`, `is_trusted`, `is_fraud_linked`.
+
+## Generated Beneficiary Fields
+
+`beneficiary_id`, `user_id`, `beneficiary_type`, `beneficiary_country`, `bank_code`, `added_at`, `is_recent`, `is_fraud_linked`.
+
+## Generated Merchant Fields
+
+`merchant_id`, `merchant_name`, `category`, `country`, `risk_tier`, `is_high_risk`.
+
 ## Generated Transaction Fields
 
-`transaction_id`, `user_id`, `timestamp`, `amount`, `currency`, `channel`, `beneficiary_id`, `beneficiary_country`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
+`transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
 
 ## Risk Scoring
 
@@ -155,12 +195,14 @@ Transaction:
 {
   "transaction_id": "txn_616304_629760",
   "user_id": "usr_693649_684895",
+  "account_id": "acct_883692_381742",
   "timestamp": "2026-01-02T17:52:00.000Z",
   "amount": 1250050.28,
   "currency": "NGN",
   "channel": "mobile_app",
   "beneficiary_id": "bene_550156_152713",
   "beneficiary_country": "NG",
+  "merchant_id": "mch_876104_347620",
   "device_id": "dev_561681_118099",
   "ip_country": "NG",
   "status": "completed",

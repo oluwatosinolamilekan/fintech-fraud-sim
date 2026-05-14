@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim merchant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "merchant_id",
+    "merchant_name",
+    "category",
+    "country",
+    "risk_tier",
+    "is_high_risk"
+  ],
+  "properties": {
+    "merchant_id": {
+      "type": "string"
+    },
+    "merchant_name": {
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "airtime",
+        "bill_payments",
+        "ecommerce",
+        "gaming",
+        "groceries",
+        "travel"
+      ]
+    },
+    "country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "risk_tier": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "is_high_risk": {
+      "type": "boolean"
+    }
+  }
+}
