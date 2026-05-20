@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim account",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_id",
+    "user_id",
+    "account_type",
+    "currency",
+    "balance",
+    "status",
+    "opened_at",
+    "daily_limit",
+    "is_fraud_linked"
+  ],
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "account_type": {
+      "enum": [
+        "wallet",
+        "savings",
+        "current"
+      ]
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3
+    },
+    "balance": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "active",
+        "restricted",
+        "closed"
+      ]
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "daily_limit": {
+      "type": "number",
+      "minimum": 0
+    },
+    "is_fraud_linked": {
+      "type": "boolean"
+    }
+  }
+}

@@ -3,6 +3,7 @@ import {
   Channel,
   FraudPattern,
   RiskLabel,
+  SyntheticBeneficiary,
   SyntheticTransaction,
   SyntheticUser,
   TransactionStatus
@@ -132,7 +133,13 @@ export function makeTransactionForUser(
   currency: string,
   index: number,
   rng: SimRandom,
-  baseTimeMs: number
+  baseTimeMs: number,
+  relations: {
+    accountId: string;
+    deviceIds: string[];
+    beneficiaries: SyntheticBeneficiary[];
+    merchantIds: string[];
+  }
 ): SyntheticTransaction {
   const pattern = user.fraud_pattern;
   const isSuspicious = user.is_fraud && (index < suspiciousTransactionQuota(pattern, rng) || rng.bool(0.55));
@@ -155,13 +162,17 @@ export function makeTransactionForUser(
   const transactionWithoutRisk: Omit<SyntheticTransaction, 'risk_score' | 'recommended_action'> = {
     transaction_id: syntheticId('txn', rng),
     user_id: user.user_id,
+    account_id: relations.accountId,
     timestamp: new Date(baseTimeMs - minutesAgo * 60_000).toISOString(),
     amount,
     currency,
     channel: channelForPattern(pattern, isSuspicious, rng),
-    beneficiary_id: syntheticId('bene', rng),
+    beneficiary_id: beneficiaryForCountry(relations.beneficiaries, beneficiaryCountry, rng).beneficiary_id,
     beneficiary_country: beneficiaryCountry,
-    device_id: isSuspicious && pattern === 'account_takeover' ? syntheticId('dev_new', rng) : syntheticId('dev', rng),
+    merchant_id: rng.pick(relations.merchantIds),
+    device_id: isSuspicious && pattern === 'account_takeover'
+      ? relations.deviceIds[relations.deviceIds.length - 1]
+      : rng.pick(relations.deviceIds),
     ip_country: ipCountry,
     status: isSuspicious ? rng.pick(HIGH_RISK_STATUSES) : rng.pick(['completed', 'completed', 'pending', 'failed']),
     is_suspicious: isSuspicious,
@@ -175,6 +186,15 @@ export function makeTransactionForUser(
     risk_score: riskScore,
     recommended_action: actionForRiskScore(riskScore)
   };
+}
+
+function beneficiaryForCountry(
+  beneficiaries: SyntheticBeneficiary[],
+  country: string,
+  rng: SimRandom
+): SyntheticBeneficiary {
+  const countryMatches = beneficiaries.filter((beneficiary) => beneficiary.beneficiary_country === country);
+  return rng.pick(countryMatches.length > 0 ? countryMatches : beneficiaries);
 }
 
 function riskForPattern(pattern: FraudPattern): RiskLabel {

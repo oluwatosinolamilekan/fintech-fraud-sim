@@ -98,8 +98,8 @@ function normalizePatternAlias(pattern: string): string {
 
 export function parseOutputFormat(value: string): OutputFormat {
   const format = value.toLowerCase();
-  if (format !== 'csv' && format !== 'json' && format !== 'both') {
-    throw new Error('--format must be one of: csv, json, both');
+  if (format !== 'csv' && format !== 'json' && format !== 'ndjson' && format !== 'sql' && format !== 'both' && format !== 'all') {
+    throw new Error('--format must be one of: csv, json, ndjson, sql, both, all');
   }
   return format;
 }
@@ -122,6 +122,10 @@ export function validateGenerateOptions(options: GenerateOptions): void {
   }
   if (options.patterns.length === 0) {
     throw new Error('At least one fraud pattern must be selected');
+  }
+  const invalidPatterns = options.patterns.filter((pattern) => !FRAUD_PATTERNS.includes(pattern));
+  if (invalidPatterns.length > 0) {
+    throw new Error(`Unknown fraud pattern(s): ${invalidPatterns.join(', ')}. Allowed patterns: ${FRAUD_PATTERNS.join(', ')}`);
   }
   if (normalizeCountry(options.country).length !== 2) {
     throw new Error('--country must be a 2-letter ISO country code such as NG');

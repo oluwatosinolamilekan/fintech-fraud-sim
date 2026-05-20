@@ -21,9 +21,18 @@ describe('generateDataset', () => {
     const dataset = generateDataset(baseOptions);
 
     assert.equal(dataset.users.length, 100);
+    assert.equal(dataset.accounts.length, 100);
+    assert.ok(dataset.devices.length >= 100);
+    assert.ok(dataset.beneficiaries.length >= 100);
+    assert.ok(dataset.merchants.length > 0);
     assert.ok(dataset.transactions.length >= 100);
     assert.equal(dataset.summary.total_users, 100);
+    assert.equal(dataset.summary.total_accounts, dataset.accounts.length);
+    assert.equal(dataset.summary.total_devices, dataset.devices.length);
+    assert.equal(dataset.summary.total_beneficiaries, dataset.beneficiaries.length);
+    assert.equal(dataset.summary.total_merchants, dataset.merchants.length);
     assert.equal(dataset.summary.fraud_rate_requested, 0.1);
+    assert.equal(dataset.summary.use_case, null);
     assert.equal(dataset.summary.fraud_users_generated, 10);
     assert.ok(dataset.summary.suspicious_transactions_generated > 0);
     assert.equal(dataset.users.every((user) => Number.isInteger(user.risk_score)), true);
@@ -33,6 +42,7 @@ describe('generateDataset', () => {
       dataset.transactions.every((transaction) => ['allow', 'review', 'block'].includes(transaction.recommended_action)),
       true
     );
+    assert.equal(dataset.transactions.every((transaction) => transaction.account_id && transaction.merchant_id), true);
   });
 
   it('generates deterministic output when seed is provided', () => {

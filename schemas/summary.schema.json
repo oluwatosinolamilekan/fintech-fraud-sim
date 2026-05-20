@@ -5,16 +5,37 @@
   "additionalProperties": false,
   "required": [
     "total_users",
+    "total_accounts",
+    "total_devices",
+    "total_beneficiaries",
+    "total_merchants",
     "total_transactions",
     "fraud_rate_requested",
     "fraud_users_generated",
     "suspicious_transactions_generated",
     "fraud_pattern_breakdown",
+    "use_case",
     "generated_at",
     "seed"
   ],
   "properties": {
     "total_users": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_accounts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_devices": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_beneficiaries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_merchants": {
       "type": "integer",
       "minimum": 0
     },
@@ -41,6 +62,17 @@
         "type": "integer",
         "minimum": 0
       }
+    },
+    "use_case": {
+      "enum": [
+        null,
+        "consumer_fintech",
+        "social_payments",
+        "crypto_exchange",
+        "marketplace_trust",
+        "bank_aml",
+        "bnpl_credit"
+      ]
     },
     "generated_at": {
       "type": "string",
