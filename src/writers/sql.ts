@@ -18,6 +18,8 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
   users: [
     'user_id',
     'country',
+    'identity_type',
+    'kyc_provider',
     'account_age_days',
     'kyc_status',
     'failed_kyc_attempts',
@@ -54,6 +56,7 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'timestamp',
     'amount',
     'currency',
+    'payment_rail',
     'channel',
     'beneficiary_id',
     'beneficiary_country',
@@ -78,6 +81,9 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'fraud_users_generated',
     'suspicious_transactions_generated',
     'fraud_pattern_breakdown',
+    'use_case',
+    'platform',
+    'country_profile',
     'generated_at',
     'seed'
   ]

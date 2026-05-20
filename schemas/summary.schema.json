@@ -15,6 +15,8 @@
     "suspicious_transactions_generated",
     "fraud_pattern_breakdown",
     "use_case",
+    "platform",
+    "country_profile",
     "generated_at",
     "seed"
   ],
@@ -73,6 +75,15 @@
         "bank_aml",
         "bnpl_credit"
       ]
+    },
+    "platform": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "country_profile": {
+      "type": "string"
     },
     "generated_at": {
       "type": "string",

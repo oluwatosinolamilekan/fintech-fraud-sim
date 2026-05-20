@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { generateDataset } from '../dist/generator.js';
+import { defineGenerationPlugin, registerGenerationPlugin } from '../dist/plugins.js';
 
 const baseOptions = {
   users: 100,
@@ -43,6 +44,8 @@ describe('generateDataset', () => {
       true
     );
     assert.equal(dataset.transactions.every((transaction) => transaction.account_id && transaction.merchant_id), true);
+    assert.equal(dataset.users.every((user) => user.identity_type && user.kyc_provider), true);
+    assert.equal(dataset.transactions.every((transaction) => transaction.payment_rail), true);
   });
 
   it('generates deterministic output when seed is provided', () => {
@@ -62,5 +65,66 @@ describe('generateDataset', () => {
 
   it('validates fraud rate range', () => {
     assert.throws(() => generateDataset({ ...baseOptions, fraudRate: 1.2 }), /--fraud-rate/);
+  });
+
+  it('applies country profiles and platform presets', () => {
+    const dataset = generateDataset({
+      ...baseOptions,
+      country: 'KE',
+      currency: 'KES',
+      platform: 'remittance',
+      seed: 'global-case'
+    });
+
+    assert.equal(dataset.summary.country_profile, 'KE');
+    assert.equal(dataset.summary.platform, 'remittance');
+    assert.equal(dataset.users.every((user) => ['national_id', 'mobile_money_id', 'passport'].includes(user.identity_type)), true);
+    assert.equal(dataset.transactions.some((transaction) => ['mobile_money', 'cashout', 'swift'].includes(transaction.payment_rail)), true);
+  });
+
+  it('allows plugins to register custom country profiles and platform presets', () => {
+    registerGenerationPlugin(defineGenerationPlugin({
+      name: 'unit-test-global-pack',
+      countryProfiles: [{
+        code: 'ZZ',
+        label: 'Unit Test Region',
+        currency: 'ZZD',
+        channels: ['api', 'web'],
+        paymentRails: ['crypto_wallet', 'payout'],
+        accountTypes: ['crypto', 'wallet'],
+        beneficiaryTypes: ['crypto_wallet', 'wallet'],
+        merchantCategories: ['digital_goods'],
+        identityTypes: ['passport', 'tax_id'],
+        kycProviders: ['synthetic_unit_check'],
+        bankCodeLength: 4
+      }],
+      platformPresets: [{
+        name: 'creator_tokens',
+        label: 'Creator token payouts',
+        description: 'Synthetic creator token payout simulation.',
+        merchantCategories: ['creator_payout', 'digital_goods'],
+        defaults: {
+          fraudRate: 0.2,
+          patterns: ['account_takeover'],
+          transactionsMin: 1,
+          transactionsMax: 2,
+          paymentRails: ['crypto_wallet', 'payout']
+        }
+      }]
+    }));
+
+    const dataset = generateDataset({
+      ...baseOptions,
+      users: 10,
+      country: 'ZZ',
+      currency: 'ZZD',
+      platform: 'creator_tokens',
+      seed: 'plugin-test'
+    });
+
+    assert.equal(dataset.summary.country_profile, 'ZZ');
+    assert.equal(dataset.summary.platform, 'creator_tokens');
+    assert.equal(dataset.users.every((user) => user.kyc_provider === 'synthetic_unit_check'), true);
+    assert.equal(dataset.transactions.every((transaction) => ['crypto_wallet', 'payout'].includes(transaction.payment_rail)), true);
   });
 });
