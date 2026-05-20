@@ -2,6 +2,13 @@ export { generateDataset } from './generator.js';
 export { PATTERN_DEFINITIONS, PATTERN_REASON_CODES, applyFraudPattern } from './patterns.js';
 export { actionForRiskScore, scoreTransactionRisk, scoreUserRisk } from './risk.js';
 export {
+  USE_CASE_NAMES,
+  USE_CASE_PRESETS,
+  allPatterns,
+  parseUseCase,
+  patternsForUseCase
+} from './use-cases.js';
+export {
   getSchemas,
   writeSchemas,
   ACCOUNT_SCHEMA,
@@ -38,6 +45,8 @@ export type {
   SyntheticMerchant,
   SyntheticTransaction,
   SyntheticUser,
-  TransactionStatus
+  TransactionStatus,
+  UseCaseName
 } from './types.js';
+export type { UseCasePreset } from './use-cases.js';
 export { FRAUD_PATTERNS } from './types.js';

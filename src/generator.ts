@@ -88,6 +88,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
       fraud_users_generated: users.filter((user) => user.is_fraud).length,
       suspicious_transactions_generated: transactions.filter((transaction) => transaction.is_suspicious).length,
       fraud_pattern_breakdown: fraudPatternBreakdown,
+      use_case: options.useCase ?? null,
       generated_at: new Date(baseTimeMs).toISOString(),
       seed: options.seed ?? null
     }

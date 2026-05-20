@@ -71,6 +71,28 @@ describe('CLI', () => {
     assert.equal(typeof preview.users[0].risk_score, 'number');
   });
 
+  it('lists production use cases and applies a use case preset', async () => {
+    const cases = await execFileAsync(process.execPath, ['dist/cli.js', 'use-cases']);
+    const parsedCases = JSON.parse(cases.stdout);
+    assert.ok(parsedCases.some((useCase) => useCase.name === 'social_payments'));
+
+    const result = await execFileAsync(process.execPath, [
+      'dist/cli.js',
+      'preview',
+      '--use-case',
+      'social_payments',
+      '--limit',
+      '1',
+      '--seed',
+      'social-case'
+    ]);
+    const preview = JSON.parse(result.stdout);
+
+    assert.equal(preview.summary.use_case, 'social_payments');
+    assert.equal(preview.summary.total_users, 8000);
+    assert.equal(preview.summary.fraud_rate_requested, 0.06);
+  });
+
   it('prints and exports JSON schemas', async () => {
     const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-schema-'));
 
@@ -87,6 +109,8 @@ describe('CLI', () => {
       assert.equal(schema.title, 'fintech-fraud-sim user');
       assert.ok(schema.required.includes('risk_score'));
       assert.ok(schema.required.includes('recommended_action'));
+      const printedSummary = await execFileAsync(process.execPath, ['dist/cli.js', 'schema', '--target', 'summary']);
+      assert.ok(JSON.parse(printedSummary.stdout).required.includes('use_case'));
 
       await execFileAsync(process.execPath, ['dist/cli.js', 'schema', '--target', 'all', '--out', out]);
       assert.equal(JSON.parse(await readFile(join(out, 'users.schema.json'), 'utf8')).title, 'fintech-fraud-sim user');

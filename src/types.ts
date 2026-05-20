@@ -11,6 +11,13 @@ export const FRAUD_PATTERNS = [
 
 export type FraudPattern = (typeof FRAUD_PATTERNS)[number];
 export type OutputFormat = 'csv' | 'json' | 'ndjson' | 'sql' | 'both' | 'all';
+export type UseCaseName =
+  | 'consumer_fintech'
+  | 'social_payments'
+  | 'crypto_exchange'
+  | 'marketplace_trust'
+  | 'bank_aml'
+  | 'bnpl_credit';
 export type KycStatus = 'verified' | 'pending' | 'rejected';
 export type RiskLabel = 'low' | 'medium' | 'high' | 'critical';
 export type RecommendedAction = 'allow' | 'review' | 'block';
@@ -34,6 +41,7 @@ export interface GenerateOptions {
   transactionsMin: number;
   transactionsMax: number;
   pretty: boolean;
+  useCase?: UseCaseName;
 }
 
 export interface SyntheticUser {
@@ -142,6 +150,7 @@ export interface GenerationSummary {
   fraud_users_generated: number;
   suspicious_transactions_generated: number;
   fraud_pattern_breakdown: Record<string, number>;
+  use_case: UseCaseName | null;
   generated_at: string;
   seed: string | number | null;
 }

@@ -15,6 +15,9 @@ npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format ndjson --
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format sql --out ./db-seed
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
+npx fintech-fraud-sim generate --use-case crypto_exchange --format ndjson --out ./aml-fixtures
+npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
+npx fintech-fraud-sim use-cases --pretty
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
 npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 ```
@@ -41,6 +44,7 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | `--country <code>` | `NG` | Default 2-letter country code. |
 | `--currency <code>` | `NGN` | Transaction currency code. |
 | `--patterns <list>` | `all` | Comma-separated fraud patterns. `mule` is accepted as an alias for `mule_account`. |
+| `--use-case <name>` | none | Apply production-oriented defaults for a product domain. Explicit flags override preset defaults. |
 | `--seed <value>` | none | String or number seed for deterministic output. |
 | `--transactions-min <number>` | `1` | Minimum transactions per non-fraud user. |
 | `--transactions-max <number>` | `20` | Maximum transactions per non-fraud user. |
@@ -63,6 +67,25 @@ Prints or exports JSON Schema files for the generated dataset.
 | `--target <users\|accounts\|devices\|beneficiaries\|merchants\|transactions\|summary\|all>` | `all` | Schema target to print or export. |
 | `--out <path>` | none | Directory to write schema files. Prints to stdout when omitted. |
 | `--pretty` | `false` | Format schema JSON with indentation. |
+
+### `use-cases`
+
+Prints preset defaults and examples for teams building global-scale risk, fraud, trust, AML, and payment systems.
+
+```bash
+npx fintech-fraud-sim use-cases --pretty
+```
+
+Available presets:
+
+| Use Case | Built For | Default Signals |
+| --- | --- | --- |
+| `consumer_fintech` | Neobank, wallet, mobile money, and card issuing apps. | Mule accounts, account takeover, velocity abuse, beneficiary bursts. |
+| `social_payments` | Meta-style social commerce, X/Twitter-style creator payouts, messaging wallets. | Account takeover, payout velocity, beneficiary bursts, cross-border anomalies. |
+| `crypto_exchange` | Crypto exchanges, fiat on-ramps, stablecoin wallet apps. | Cross-border anomalies, mule behavior, KYC abuse, transaction spikes. |
+| `marketplace_trust` | Ecommerce, delivery, gig, and classifieds marketplaces. | Chargebacks, transaction spikes, account takeover, velocity abuse. |
+| `bank_aml` | Retail banks, business banks, AML monitoring vendors. | Mule accounts, beneficiary bursts, cross-border movement, transaction spikes. |
+| `bnpl_credit` | BNPL checkout, consumer lending, merchant financing. | Chargeback risk, transaction spikes, KYC abuse, account takeover. |
 
 ## Output Files
 
@@ -111,6 +134,7 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
     "account_takeover": 12,
     "velocity_abuse": 10
   },
+  "use_case": "consumer_fintech",
   "generated_at": "2026-01-03T10:14:00.000Z",
   "seed": "demo"
 }
@@ -230,6 +254,24 @@ const dataset = generateDataset({
   seed: 'demo',
   transactionsMin: 1,
   transactionsMax: 20,
-  pretty: false
+  pretty: false,
+  useCase: 'consumer_fintech'
+});
+```
+
+Use presets directly when you want realistic defaults that still stay fully deterministic with a seed:
+
+```ts
+import { USE_CASE_PRESETS, generateDataset } from 'fintech-fraud-sim';
+
+const preset = USE_CASE_PRESETS.crypto_exchange;
+
+const dataset = generateDataset({
+  ...preset.defaults,
+  format: 'ndjson',
+  out: './aml-fixtures',
+  seed: 'aml-regression-001',
+  pretty: false,
+  useCase: preset.name
 });
 ```

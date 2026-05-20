@@ -123,6 +123,10 @@ export function validateGenerateOptions(options: GenerateOptions): void {
   if (options.patterns.length === 0) {
     throw new Error('At least one fraud pattern must be selected');
   }
+  const invalidPatterns = options.patterns.filter((pattern) => !FRAUD_PATTERNS.includes(pattern));
+  if (invalidPatterns.length > 0) {
+    throw new Error(`Unknown fraud pattern(s): ${invalidPatterns.join(', ')}. Allowed patterns: ${FRAUD_PATTERNS.join(', ')}`);
+  }
   if (normalizeCountry(options.country).length !== 2) {
     throw new Error('--country must be a 2-letter ISO country code such as NG');
   }

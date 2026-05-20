@@ -32,6 +32,7 @@ describe('generateDataset', () => {
     assert.equal(dataset.summary.total_beneficiaries, dataset.beneficiaries.length);
     assert.equal(dataset.summary.total_merchants, dataset.merchants.length);
     assert.equal(dataset.summary.fraud_rate_requested, 0.1);
+    assert.equal(dataset.summary.use_case, null);
     assert.equal(dataset.summary.fraud_users_generated, 10);
     assert.ok(dataset.summary.suspicious_transactions_generated > 0);
     assert.equal(dataset.users.every((user) => Number.isInteger(user.risk_score)), true);

@@ -209,6 +209,7 @@ export const SUMMARY_SCHEMA: JsonSchema = {
     'fraud_users_generated',
     'suspicious_transactions_generated',
     'fraud_pattern_breakdown',
+    'use_case',
     'generated_at',
     'seed'
   ],
@@ -223,6 +224,17 @@ export const SUMMARY_SCHEMA: JsonSchema = {
     fraud_users_generated: { type: 'integer', minimum: 0 },
     suspicious_transactions_generated: { type: 'integer', minimum: 0 },
     fraud_pattern_breakdown: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+    use_case: {
+      enum: [
+        null,
+        'consumer_fintech',
+        'social_payments',
+        'crypto_exchange',
+        'marketplace_trust',
+        'bank_aml',
+        'bnpl_credit'
+      ]
+    },
     generated_at: { type: 'string', format: 'date-time' },
     seed: { type: ['string', 'number', 'null'] }
   }

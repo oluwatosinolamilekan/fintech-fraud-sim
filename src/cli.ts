@@ -8,13 +8,15 @@ import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
 import { writeNdjson } from './writers/ndjson.js';
 import { writeSql } from './writers/sql.js';
-import { GenerateOptions } from './types.js';
+import type { GenerateOptions, UseCaseName } from './types.js';
 import type { SchemaTarget } from './schemas.js';
 import { parseOutputFormat, parsePatterns, toInteger, toNumber, validateGenerateOptions } from './utils.js';
+import { parseUseCase, USE_CASE_PRESETS } from './use-cases.js';
 
 const program = new Command();
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json') as { version: string };
+const USE_CASE_HELP = 'preset for consumer_fintech, social_payments, crypto_exchange, marketplace_trust, bank_aml, or bnpl_credit';
 
 program
   .name('fintech-fraud-sim')
@@ -32,13 +34,14 @@ program
   .option('--country <code>', 'default 2-letter country code', 'NG')
   .option('--currency <code>', 'transaction currency code', 'NGN')
   .option('--patterns <list>', 'comma-separated fraud patterns, or all', 'all')
+  .option('--use-case <name>', USE_CASE_HELP)
   .option('--seed <value>', 'string or number seed for deterministic output')
   .option('--transactions-min <number>', 'minimum transactions per non-fraud user', parseIntegerOption('--transactions-min'), 1)
   .option('--transactions-max <number>', 'maximum transactions per non-fraud user', parseIntegerOption('--transactions-max'), 20)
   .option('--pretty', 'write formatted JSON output', false)
-  .action(async (rawOptions) => {
+  .action(async (rawOptions, command) => {
     try {
-      const options = buildGenerateOptions(rawOptions);
+      const options = buildGenerateOptions(rawOptions, command);
       const dataset = generateDataset(options);
 
       if (options.format === 'csv' || options.format === 'both' || options.format === 'all') {
@@ -71,14 +74,15 @@ program
   .option('--country <code>', 'default 2-letter country code', 'NG')
   .option('--currency <code>', 'transaction currency code', 'NGN')
   .option('--patterns <list>', 'comma-separated fraud patterns, or all', 'all')
+  .option('--use-case <name>', USE_CASE_HELP)
   .option('--seed <value>', 'string or number seed for deterministic output')
   .option('--transactions-min <number>', 'minimum transactions per non-fraud user', parseIntegerOption('--transactions-min'), 1)
   .option('--transactions-max <number>', 'maximum transactions per non-fraud user', parseIntegerOption('--transactions-max'), 20)
   .option('--limit <number>', 'number of sample users and transactions to print', parseIntegerOption('--limit'), 5)
   .option('--pretty', 'write formatted JSON output', false)
-  .action((rawOptions) => {
+  .action((rawOptions, command) => {
     try {
-      const options = buildGenerateOptions({ ...rawOptions, format: 'json', out: './output' });
+      const options = buildGenerateOptions({ ...rawOptions, format: 'json', out: './output' }, command);
       const limit = rawOptions.limit as number;
       if (!Number.isInteger(limit) || limit < 1) {
         throw new Error('--limit must be a positive integer');
@@ -101,6 +105,22 @@ program
       console.error(`Error: ${message}`);
       process.exitCode = 1;
     }
+  });
+
+program
+  .command('use-cases')
+  .description('List production-oriented generation presets for fintech, social, marketplace, banking, and crypto apps.')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action((rawOptions) => {
+    const rows = Object.values(USE_CASE_PRESETS).map((preset) => ({
+      name: preset.name,
+      label: preset.label,
+      platform_examples: preset.platformExamples,
+      description: preset.description,
+      defaults: preset.defaults
+    }));
+
+    console.log(JSON.stringify(rows, null, rawOptions.pretty ? 2 : 0));
   });
 
 program
@@ -129,19 +149,30 @@ program
 
 program.parseAsync();
 
-function buildGenerateOptions(rawOptions: Record<string, unknown>): GenerateOptions {
+function buildGenerateOptions(rawOptions: Record<string, unknown>, command?: Command): GenerateOptions {
+  const useCase = parseUseCase(rawOptions.useCase as string | undefined);
+  const preset = useCase ? USE_CASE_PRESETS[useCase] : undefined;
+  const hasExplicitValue = (key: string): boolean => command ? command.getOptionValueSource(key) !== 'default' : true;
+  const resolvePresetValue = <T>(key: keyof GenerateOptions, fallback: T): T => {
+    if (!preset || hasExplicitValue(String(key))) {
+      return fallback;
+    }
+    return preset.defaults[key as keyof typeof preset.defaults] as T;
+  };
+
   const options: GenerateOptions = {
-    users: rawOptions.users as number,
-    fraudRate: rawOptions.fraudRate as number,
+    users: resolvePresetValue('users', rawOptions.users as number),
+    fraudRate: resolvePresetValue('fraudRate', rawOptions.fraudRate as number),
     format: parseOutputFormat(rawOptions.format as string),
     out: resolve(rawOptions.out as string),
-    country: rawOptions.country as string,
-    currency: rawOptions.currency as string,
-    patterns: parsePatterns(rawOptions.patterns as string),
+    country: resolvePresetValue('country', rawOptions.country as string),
+    currency: resolvePresetValue('currency', rawOptions.currency as string),
+    patterns: preset && !hasExplicitValue('patterns') ? [...preset.defaults.patterns] : parsePatterns(rawOptions.patterns as string),
     seed: rawOptions.seed as string | number | undefined,
-    transactionsMin: rawOptions.transactionsMin as number,
-    transactionsMax: rawOptions.transactionsMax as number,
-    pretty: Boolean(rawOptions.pretty)
+    transactionsMin: resolvePresetValue('transactionsMin', rawOptions.transactionsMin as number),
+    transactionsMax: resolvePresetValue('transactionsMax', rawOptions.transactionsMax as number),
+    pretty: Boolean(rawOptions.pretty),
+    useCase: useCase as UseCaseName | undefined
   };
 
   validateGenerateOptions(options);
