@@ -13,6 +13,8 @@ import {
 const USER_FIELDS: (keyof SyntheticUser)[] = [
   'user_id',
   'country',
+  'identity_type',
+  'kyc_provider',
   'account_age_days',
   'kyc_status',
   'failed_kyc_attempts',
@@ -37,6 +39,7 @@ const TRANSACTION_FIELDS: (keyof SyntheticTransaction)[] = [
   'timestamp',
   'amount',
   'currency',
+  'payment_rail',
   'channel',
   'beneficiary_id',
   'beneficiary_country',

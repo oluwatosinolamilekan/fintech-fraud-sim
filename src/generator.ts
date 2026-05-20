@@ -1,4 +1,7 @@
 import {
+  AccountType,
+  BeneficiaryType,
+  CountryProfile,
   DeviceType,
   SyntheticAccount,
   SyntheticBeneficiary,
@@ -19,20 +22,28 @@ import {
   syntheticId,
   validateGenerateOptions
 } from './utils.js';
+import { getCountryProfile } from './country-profiles.js';
+import { getPlatformPreset } from './platforms.js';
+import { applyGenerationPlugins } from './plugins.js';
 
 export function generateDataset(options: GenerateOptions): GeneratedDataset {
-  validateGenerateOptions(options);
-  seedFaker(options.seed);
-  const rng = new SimRandom(options.seed ?? Date.now());
-  const country = normalizeCountry(options.country);
-  const baseTimeMs = generationBaseTime(options.seed, rng);
-  const fraudTarget = Math.round(options.users * options.fraudRate);
-  const fraudIndexes = new Set(rng.sample(Array.from({ length: options.users }, (_, index) => index), fraudTarget));
+  const configuredOptions = applyGenerationPlugins(options);
+  validateGenerateOptions(configuredOptions);
+  seedFaker(configuredOptions.seed);
+  const rng = new SimRandom(configuredOptions.seed ?? Date.now());
+  const profile = getCountryProfile(configuredOptions.country, configuredOptions.profile);
+  const country = normalizeCountry(configuredOptions.country);
+  const platformPreset = configuredOptions.platform ? getPlatformPreset(configuredOptions.platform) : undefined;
+  const activeRails = configuredOptions.paymentRails ?? platformPreset?.defaults.paymentRails ?? profile.paymentRails;
+  const activeCategories = platformPreset?.merchantCategories ?? profile.merchantCategories;
+  const baseTimeMs = generationBaseTime(configuredOptions.seed, rng);
+  const fraudTarget = Math.round(configuredOptions.users * configuredOptions.fraudRate);
+  const fraudIndexes = new Set(rng.sample(Array.from({ length: configuredOptions.users }, (_, index) => index), fraudTarget));
   const users: SyntheticUser[] = [];
 
-  for (let index = 0; index < options.users; index += 1) {
-    const pattern = rng.pick(options.patterns);
-    const baseUser = makeBaseUser(country, rng);
+  for (let index = 0; index < configuredOptions.users; index += 1) {
+    const pattern = rng.pick(configuredOptions.patterns);
+    const baseUser = makeBaseUser(country, profile, rng);
     const user = fraudIndexes.has(index) ? applyFraudPattern(baseUser, pattern, rng) : baseUser;
     const riskScore = scoreUserRisk(user);
     users.push({
@@ -42,10 +53,11 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
     });
   }
 
-  const accounts = users.map((user) => makeAccountForUser(user, options.currency.toUpperCase(), rng, baseTimeMs));
+  const currency = configuredOptions.currency.toUpperCase();
+  const accounts = users.map((user) => makeAccountForUser(user, currency, profile, rng, baseTimeMs));
   const devices = users.flatMap((user) => makeDevicesForUser(user, rng, baseTimeMs));
-  const beneficiaries = users.flatMap((user) => makeBeneficiariesForUser(user, rng, baseTimeMs));
-  const merchants = makeMerchants(country, Math.max(12, Math.ceil(options.users / 8)), rng);
+  const beneficiaries = users.flatMap((user) => makeBeneficiariesForUser(user, profile, rng, baseTimeMs));
+  const merchants = makeMerchants(country, activeCategories, Math.max(12, Math.ceil(configuredOptions.users / 8)), rng);
   const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
   const devicesByUserId = groupByUserId(devices);
   const beneficiariesByUserId = groupByUserId(beneficiaries);
@@ -53,12 +65,14 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
 
   const transactions = users.flatMap((user) =>
     Array.from(
-      { length: transactionCountForUser(user, options.transactionsMin, options.transactionsMax, rng) },
-      (_, index) => makeTransactionForUser(user, options.currency.toUpperCase(), index, rng, baseTimeMs, {
+      { length: transactionCountForUser(user, configuredOptions.transactionsMin, configuredOptions.transactionsMax, rng) },
+      (_, index) => makeTransactionForUser(user, currency, index, rng, baseTimeMs, {
         accountId: accountByUserId.get(user.user_id)?.account_id ?? accounts[0].account_id,
         deviceIds: (devicesByUserId.get(user.user_id) ?? devices).map((device) => device.device_id),
         beneficiaries: beneficiariesByUserId.get(user.user_id) ?? beneficiaries,
-        merchantIds
+        merchantIds,
+        channels: profile.channels,
+        paymentRails: activeRails
       })
     )
   );
@@ -84,13 +98,15 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
       total_beneficiaries: beneficiaries.length,
       total_merchants: merchants.length,
       total_transactions: transactions.length,
-      fraud_rate_requested: options.fraudRate,
+      fraud_rate_requested: configuredOptions.fraudRate,
       fraud_users_generated: users.filter((user) => user.is_fraud).length,
       suspicious_transactions_generated: transactions.filter((transaction) => transaction.is_suspicious).length,
       fraud_pattern_breakdown: fraudPatternBreakdown,
-      use_case: options.useCase ?? null,
+      use_case: configuredOptions.useCase ?? null,
+      platform: configuredOptions.platform ?? null,
+      country_profile: profile.code,
       generated_at: new Date(baseTimeMs).toISOString(),
-      seed: options.seed ?? null
+      seed: configuredOptions.seed ?? null
     }
   };
 }
@@ -102,11 +118,13 @@ function generationBaseTime(seed: string | number | undefined, rng: SimRandom): 
   return Date.UTC(2026, 0, 1, 0, 0, 0) + rng.int(0, 365 * 24 * 60 * 60) * 1000;
 }
 
-function makeBaseUser(country: string, rng: SimRandom): SyntheticUser {
+function makeBaseUser(country: string, profile: CountryProfile, rng: SimRandom): SyntheticUser {
   const countryMismatch = rng.bool(0.05);
   return {
     user_id: syntheticId('usr', rng),
     country,
+    identity_type: rng.pick(profile.identityTypes),
+    kyc_provider: rng.pick(profile.kycProviders),
     account_age_days: rng.int(30, 2500),
     kyc_status: rng.pick(['verified', 'verified', 'verified', 'pending']),
     failed_kyc_attempts: rng.int(0, 1),
@@ -125,13 +143,19 @@ function makeBaseUser(country: string, rng: SimRandom): SyntheticUser {
   };
 }
 
-function makeAccountForUser(user: SyntheticUser, currency: string, rng: SimRandom, baseTimeMs: number): SyntheticAccount {
+function makeAccountForUser(
+  user: SyntheticUser,
+  currency: string,
+  profile: CountryProfile,
+  rng: SimRandom,
+  baseTimeMs: number
+): SyntheticAccount {
   const openedDaysAgo = Math.max(user.account_age_days, 1);
   const isRestricted = user.risk_score >= 75 || user.fraud_pattern === 'kyc_abuse';
   return {
     account_id: syntheticId('acct', rng),
     user_id: user.user_id,
-    account_type: rng.pick(['wallet', 'savings', 'current']),
+    account_type: rng.pick<AccountType>(profile.accountTypes),
     currency,
     balance: currencyMinorUnits(rng.float(0, user.is_fraud ? 450000 : 2500000)),
     status: isRestricted ? 'restricted' : 'active',
@@ -160,7 +184,12 @@ function makeDevicesForUser(user: SyntheticUser, rng: SimRandom, baseTimeMs: num
   });
 }
 
-function makeBeneficiariesForUser(user: SyntheticUser, rng: SimRandom, baseTimeMs: number): SyntheticBeneficiary[] {
+function makeBeneficiariesForUser(
+  user: SyntheticUser,
+  profile: CountryProfile,
+  rng: SimRandom,
+  baseTimeMs: number
+): SyntheticBeneficiary[] {
   const count = Math.max(1, Math.min(user.beneficiary_count_24h + rng.int(1, 4), 50));
   return Array.from({ length: count }, (_, index) => {
     const isRecent = index < user.beneficiary_count_24h || rng.bool(0.15);
@@ -172,9 +201,9 @@ function makeBeneficiariesForUser(user: SyntheticUser, rng: SimRandom, baseTimeM
     return {
       beneficiary_id: syntheticId('bene', rng),
       user_id: user.user_id,
-      beneficiary_type: rng.pick(['bank_account', 'wallet', 'card']),
+      beneficiary_type: rng.pick<BeneficiaryType>(profile.beneficiaryTypes),
       beneficiary_country: country,
-      bank_code: String(rng.int(10, 999)).padStart(3, '0'),
+      bank_code: String(rng.int(0, 10 ** profile.bankCodeLength - 1)).padStart(profile.bankCodeLength, '0'),
       added_at: new Date(baseTimeMs - (isRecent ? rng.int(1, 24) * 60 * 60 * 1000 : rng.int(2, 365) * 24 * 60 * 60 * 1000)).toISOString(),
       is_recent: isRecent,
       is_fraud_linked: user.is_fraud && (isRecent || rng.bool(0.4))
@@ -182,9 +211,9 @@ function makeBeneficiariesForUser(user: SyntheticUser, rng: SimRandom, baseTimeM
   });
 }
 
-function makeMerchants(country: string, count: number, rng: SimRandom): SyntheticMerchant[] {
+function makeMerchants(country: string, categories: CountryProfile['merchantCategories'], count: number, rng: SimRandom): SyntheticMerchant[] {
   return Array.from({ length: count }, (_, index) => {
-    const category = rng.pick<SyntheticMerchant['category']>(['airtime', 'bill_payments', 'ecommerce', 'gaming', 'groceries', 'travel']);
+    const category = rng.pick<SyntheticMerchant['category']>(categories);
     const riskTier = category === 'gaming' || rng.bool(0.08)
       ? rng.pick<SyntheticMerchant['risk_tier']>(['high', 'critical'])
       : rng.pick<SyntheticMerchant['risk_tier']>(['low', 'low', 'medium']);

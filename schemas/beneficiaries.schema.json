@@ -24,7 +24,9 @@
       "enum": [
         "bank_account",
         "wallet",
-        "card"
+        "card",
+        "mobile_money",
+        "crypto_wallet"
       ]
     },
     "beneficiary_country": {

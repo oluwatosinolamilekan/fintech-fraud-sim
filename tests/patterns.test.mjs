@@ -6,6 +6,8 @@ import { parsePatterns, SimRandom } from '../dist/utils.js';
 const baseUser = {
   user_id: 'usr_test',
   country: 'NG',
+  identity_type: 'bvn_like_id',
+  kyc_provider: 'synthetic_bvn_check',
   account_age_days: 400,
   kyc_status: 'verified',
   failed_kyc_attempts: 0,

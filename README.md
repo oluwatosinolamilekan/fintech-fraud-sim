@@ -14,9 +14,13 @@ npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format json --ou
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format ndjson --out ./stream-data
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format sql --out ./db-seed
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
+npx fintech-fraud-sim generate --users 1000 --country KE --platform remittance --payment-rails mobile_money,cashout
+npx fintech-fraud-sim generate --config ./fraud-sim.config.json --format ndjson
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
 npx fintech-fraud-sim generate --use-case crypto_exchange --format ndjson --out ./aml-fixtures
 npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
+npx fintech-fraud-sim profiles --pretty
+npx fintech-fraud-sim platforms --pretty
 npx fintech-fraud-sim use-cases --pretty
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
 npx fintech-fraud-sim schema --target all --out ./schemas --pretty
@@ -41,8 +45,12 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | `--fraud-rate <number>` | `0.05` | Fraction of users marked as fraud, between `0` and `1`. |
 | `--format <csv\|json\|ndjson\|sql\|both\|all>` | `both` | Output file format. `both` writes CSV and JSON; `all` writes CSV, JSON, NDJSON, and SQL inserts. |
 | `--out <path>` | `./output` | Output directory. |
+| `--config <path>` | none | JSON config file with generation options. Explicit CLI flags override config values. |
 | `--country <code>` | `NG` | Default 2-letter country code. |
 | `--currency <code>` | `NGN` | Transaction currency code. |
+| `--profile <code>` | same as `--country` | Country profile to use for local payment, KYC, merchant, account, and beneficiary behavior. |
+| `--platform <name>` | none | Platform preset: `fintech`, `marketplace`, `crypto`, `social`, `gaming`, `lending`, or `remittance`. |
+| `--payment-rails <list>` | profile/platform default | Comma-separated payment rails such as `bank_transfer`, `card`, `mobile_money`, `sepa`, `swift`, `crypto_wallet`, `cashout`, or `payout`. |
 | `--patterns <list>` | `all` | Comma-separated fraud patterns. `mule` is accepted as an alias for `mule_account`. |
 | `--use-case <name>` | none | Apply production-oriented defaults for a product domain. Explicit flags override preset defaults. |
 | `--seed <value>` | none | String or number seed for deterministic output. |
@@ -57,6 +65,49 @@ Prints a small generated sample to stdout without writing files. It supports the
 | Option | Default | Description |
 | --- | --- | --- |
 | `--limit <number>` | `5` | Number of sample users and transactions to print. |
+
+### `profiles`
+
+Lists built-in country profiles. Profiles make generated datasets less NG-specific by changing default currency, identity/KYC labels, payment rails, account types, beneficiary types, merchant categories, and channels.
+
+Built-in profiles include `NG`, `US`, `GB`, `EU`, `KE`, `GH`, and `ZA`.
+
+### `platforms`
+
+Lists platform presets. Platforms tune fraud defaults and payment behavior for products outside traditional Nigerian fintech, including `fintech`, `marketplace`, `crypto`, `social`, `gaming`, `lending`, and `remittance`.
+
+### Config and Plugins
+
+Use `--config` when you want a reusable generation setup:
+
+```json
+{
+  "users": 2500,
+  "fraudRate": 0.08,
+  "country": "KE",
+  "currency": "KES",
+  "platform": "remittance",
+  "paymentRails": ["mobile_money", "cashout", "bank_transfer"],
+  "patterns": ["mule_account", "cross_border_anomaly", "beneficiary_burst"],
+  "transactionsMin": 1,
+  "transactionsMax": 12
+}
+```
+
+Library users can register custom profiles and platform presets:
+
+```ts
+import {
+  defineGenerationPlugin,
+  registerGenerationPlugin
+} from 'fintech-fraud-sim';
+
+registerGenerationPlugin(defineGenerationPlugin({
+  name: 'custom-region-pack',
+  countryProfiles: [myCountryProfile],
+  platformPresets: [myPlatformPreset]
+}));
+```
 
 ### `schema`
 
@@ -135,6 +186,8 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
     "velocity_abuse": 10
   },
   "use_case": "consumer_fintech",
+  "platform": "fintech",
+  "country_profile": "NG",
   "generated_at": "2026-01-03T10:14:00.000Z",
   "seed": "demo"
 }
@@ -142,7 +195,7 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 ## Generated User Fields
 
-`user_id`, `country`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`.
+`user_id`, `country`, `identity_type`, `kyc_provider`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`.
 
 ## Generated Account Fields
 
@@ -162,7 +215,7 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 ## Generated Transaction Fields
 
-`transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
+`transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `payment_rail`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
 
 ## Risk Scoring
 
@@ -195,6 +248,8 @@ User:
 {
   "user_id": "usr_693649_684895",
   "country": "NG",
+  "identity_type": "bvn_like_id",
+  "kyc_provider": "synthetic_bvn_check",
   "account_age_days": 9,
   "kyc_status": "verified",
   "failed_kyc_attempts": 0,
@@ -223,6 +278,7 @@ Transaction:
   "timestamp": "2026-01-02T17:52:00.000Z",
   "amount": 1250050.28,
   "currency": "NGN",
+  "payment_rail": "bank_transfer",
   "channel": "mobile_app",
   "beneficiary_id": "bene_550156_152713",
   "beneficiary_country": "NG",
@@ -250,6 +306,8 @@ const dataset = generateDataset({
   out: './output',
   country: 'NG',
   currency: 'NGN',
+  platform: 'fintech',
+  paymentRails: ['bank_transfer', 'wallet_transfer', 'card'],
   patterns: ['mule_account', 'account_takeover'],
   seed: 'demo',
   transactionsMin: 1,

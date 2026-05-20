@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { generateDataset } from './generator.js';
@@ -8,15 +9,26 @@ import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
 import { writeNdjson } from './writers/ndjson.js';
 import { writeSql } from './writers/sql.js';
-import type { GenerateOptions, UseCaseName } from './types.js';
+import type { GenerateOptions, PaymentRail, PlatformName, UseCaseName } from './types.js';
 import type { SchemaTarget } from './schemas.js';
-import { parseOutputFormat, parsePatterns, toInteger, toNumber, validateGenerateOptions } from './utils.js';
+import { parseOutputFormat, parsePatterns, parsePaymentRails, toInteger, toNumber, validateGenerateOptions } from './utils.js';
 import { parseUseCase, USE_CASE_PRESETS } from './use-cases.js';
+import { getPlatformPreset, listPlatformPresets, parsePlatform } from './platforms.js';
+import { getCountryProfile, listCountryProfiles } from './country-profiles.js';
 
 const program = new Command();
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json') as { version: string };
 const USE_CASE_HELP = 'preset for consumer_fintech, social_payments, crypto_exchange, marketplace_trust, bank_aml, or bnpl_credit';
+type GenerateConfig = Partial<Omit<GenerateOptions, 'patterns' | 'paymentRails'>> & {
+  fraud_rate?: number;
+  use_case?: string;
+  transactions_min?: number;
+  transactions_max?: number;
+  payment_rails?: string[] | string;
+  patterns?: string[] | string;
+  paymentRails?: PaymentRail[] | string;
+};
 
 program
   .name('fintech-fraud-sim')
@@ -31,8 +43,12 @@ program
   .option('--fraud-rate <number>', 'fraction of users to label as fraud, between 0 and 1', parseNumberOption('--fraud-rate'), 0.05)
   .option('--format <csv|json|ndjson|sql|both|all>', 'output format', 'both')
   .option('--out <path>', 'output directory', './output')
+  .option('--config <path>', 'JSON config file with generation options')
   .option('--country <code>', 'default 2-letter country code', 'NG')
   .option('--currency <code>', 'transaction currency code', 'NGN')
+  .option('--profile <code>', 'country profile code to use for local payment, KYC, and merchant behavior')
+  .option('--platform <name>', 'platform preset for fintech, marketplace, crypto, social, gaming, lending, or remittance')
+  .option('--payment-rails <list>', 'comma-separated payment rails to emit')
   .option('--patterns <list>', 'comma-separated fraud patterns, or all', 'all')
   .option('--use-case <name>', USE_CASE_HELP)
   .option('--seed <value>', 'string or number seed for deterministic output')
@@ -41,7 +57,7 @@ program
   .option('--pretty', 'write formatted JSON output', false)
   .action(async (rawOptions, command) => {
     try {
-      const options = buildGenerateOptions(rawOptions, command);
+      const options = await buildGenerateOptions(rawOptions, command);
       const dataset = generateDataset(options);
 
       if (options.format === 'csv' || options.format === 'both' || options.format === 'all') {
@@ -73,6 +89,10 @@ program
   .option('--fraud-rate <number>', 'fraction of users to label as fraud, between 0 and 1', parseNumberOption('--fraud-rate'), 0.1)
   .option('--country <code>', 'default 2-letter country code', 'NG')
   .option('--currency <code>', 'transaction currency code', 'NGN')
+  .option('--config <path>', 'JSON config file with generation options')
+  .option('--profile <code>', 'country profile code to use for local payment, KYC, and merchant behavior')
+  .option('--platform <name>', 'platform preset for fintech, marketplace, crypto, social, gaming, lending, or remittance')
+  .option('--payment-rails <list>', 'comma-separated payment rails to emit')
   .option('--patterns <list>', 'comma-separated fraud patterns, or all', 'all')
   .option('--use-case <name>', USE_CASE_HELP)
   .option('--seed <value>', 'string or number seed for deterministic output')
@@ -80,9 +100,9 @@ program
   .option('--transactions-max <number>', 'maximum transactions per non-fraud user', parseIntegerOption('--transactions-max'), 20)
   .option('--limit <number>', 'number of sample users and transactions to print', parseIntegerOption('--limit'), 5)
   .option('--pretty', 'write formatted JSON output', false)
-  .action((rawOptions, command) => {
+  .action(async (rawOptions, command) => {
     try {
-      const options = buildGenerateOptions({ ...rawOptions, format: 'json', out: './output' }, command);
+      const options = await buildGenerateOptions({ ...rawOptions, format: 'json', out: './output' }, command);
       const limit = rawOptions.limit as number;
       if (!Number.isInteger(limit) || limit < 1) {
         throw new Error('--limit must be a positive integer');
@@ -105,6 +125,22 @@ program
       console.error(`Error: ${message}`);
       process.exitCode = 1;
     }
+  });
+
+program
+  .command('profiles')
+  .description('List built-in and registered country profiles.')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action((rawOptions) => {
+    console.log(JSON.stringify(listCountryProfiles(), null, rawOptions.pretty ? 2 : 0));
+  });
+
+program
+  .command('platforms')
+  .description('List platform presets for fintech, marketplaces, crypto, social, gaming, lending, and remittance.')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action((rawOptions) => {
+    console.log(JSON.stringify(listPlatformPresets(), null, rawOptions.pretty ? 2 : 0));
   });
 
 program
@@ -149,34 +185,80 @@ program
 
 program.parseAsync();
 
-function buildGenerateOptions(rawOptions: Record<string, unknown>, command?: Command): GenerateOptions {
-  const useCase = parseUseCase(rawOptions.useCase as string | undefined);
+async function buildGenerateOptions(rawOptions: Record<string, unknown>, command?: Command): Promise<GenerateOptions> {
+  const config = await readGenerateConfig(rawOptions.config as string | undefined);
+  const hasExplicitValue = (key: string): boolean => {
+    if (!command) return true;
+    const source = command.getOptionValueSource(key);
+    return source !== undefined && source !== 'default';
+  };
+  const hasConfigValue = (key: keyof GenerateConfig): boolean => config[key] !== undefined;
+  const configValue = <T>(camel: keyof GenerateConfig, snake?: keyof GenerateConfig): T | undefined =>
+    (config[camel] ?? (snake ? config[snake] : undefined)) as T | undefined;
+  const rawValue = <T>(key: string, camel: keyof GenerateConfig, snake?: keyof GenerateConfig): T =>
+    (hasExplicitValue(key) ? rawOptions[key] : configValue<T>(camel, snake) ?? rawOptions[key]) as T;
+
+  const useCase = parseUseCase(rawValue<string | undefined>('useCase', 'useCase', 'use_case'));
   const preset = useCase ? USE_CASE_PRESETS[useCase] : undefined;
-  const hasExplicitValue = (key: string): boolean => command ? command.getOptionValueSource(key) !== 'default' : true;
+  const platform = parsePlatform(rawValue<string | undefined>('platform', 'platform'));
+  const platformPreset = platform ? getPlatformPreset(platform) : undefined;
   const resolvePresetValue = <T>(key: keyof GenerateOptions, fallback: T): T => {
-    if (!preset || hasExplicitValue(String(key))) {
+    if (hasExplicitValue(String(key)) || hasConfigValue(key as keyof GenerateConfig)) {
       return fallback;
     }
-    return preset.defaults[key as keyof typeof preset.defaults] as T;
+    return (preset?.defaults[key as keyof typeof preset.defaults] ?? platformPreset?.defaults[key as keyof typeof platformPreset.defaults] ?? fallback) as T;
   };
+  const parsedPaymentRails = parsePaymentRailOption(rawValue<string[] | string | undefined>('paymentRails', 'paymentRails', 'payment_rails'));
+  const country = resolvePresetValue('country', rawValue<string>('country', 'country'));
+  const profile = rawValue<string | undefined>('profile', 'profile');
+  const currencyFallback = hasExplicitValue('currency') || hasConfigValue('currency') || preset?.defaults.currency
+    ? rawValue<string>('currency', 'currency')
+    : getCountryProfile(country, profile).currency;
 
   const options: GenerateOptions = {
-    users: resolvePresetValue('users', rawOptions.users as number),
-    fraudRate: resolvePresetValue('fraudRate', rawOptions.fraudRate as number),
-    format: parseOutputFormat(rawOptions.format as string),
-    out: resolve(rawOptions.out as string),
-    country: resolvePresetValue('country', rawOptions.country as string),
-    currency: resolvePresetValue('currency', rawOptions.currency as string),
-    patterns: preset && !hasExplicitValue('patterns') ? [...preset.defaults.patterns] : parsePatterns(rawOptions.patterns as string),
-    seed: rawOptions.seed as string | number | undefined,
-    transactionsMin: resolvePresetValue('transactionsMin', rawOptions.transactionsMin as number),
-    transactionsMax: resolvePresetValue('transactionsMax', rawOptions.transactionsMax as number),
-    pretty: Boolean(rawOptions.pretty),
+    users: resolvePresetValue('users', rawValue<number>('users', 'users')),
+    fraudRate: resolvePresetValue('fraudRate', rawValue<number>('fraudRate', 'fraudRate', 'fraud_rate')),
+    format: parseOutputFormat(rawValue<string>('format', 'format')),
+    out: resolve(rawValue<string>('out', 'out')),
+    country,
+    currency: resolvePresetValue('currency', currencyFallback),
+    profile,
+    platform: platform as PlatformName | undefined,
+    paymentRails: resolvePresetValue('paymentRails', parsedPaymentRails),
+    patterns: parsePatternOption(resolvePresetValue('patterns', rawValue<string[] | string | undefined>('patterns', 'patterns'))),
+    seed: rawValue<string | number | undefined>('seed', 'seed'),
+    transactionsMin: resolvePresetValue('transactionsMin', rawValue<number>('transactionsMin', 'transactionsMin', 'transactions_min')),
+    transactionsMax: resolvePresetValue('transactionsMax', rawValue<number>('transactionsMax', 'transactionsMax', 'transactions_max')),
+    pretty: Boolean(rawValue<boolean>('pretty', 'pretty')),
     useCase: useCase as UseCaseName | undefined
   };
 
   validateGenerateOptions(options);
   return options;
+}
+
+async function readGenerateConfig(path?: string): Promise<GenerateConfig> {
+  if (!path) return {};
+  const raw = await readFile(resolve(path), 'utf8');
+  const parsed = JSON.parse(raw) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('--config must point to a JSON object');
+  }
+  return parsed as GenerateConfig;
+}
+
+function parsePatternOption(value: string[] | string | undefined) {
+  if (Array.isArray(value)) {
+    return parsePatterns(value.join(','));
+  }
+  return parsePatterns(value);
+}
+
+function parsePaymentRailOption(value: string[] | string | undefined) {
+  if (Array.isArray(value)) {
+    return parsePaymentRails(value.join(','));
+  }
+  return parsePaymentRails(value);
 }
 
 function parseIntegerOption(flag: string) {
