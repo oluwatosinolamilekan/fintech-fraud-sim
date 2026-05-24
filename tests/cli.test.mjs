@@ -95,6 +95,90 @@ describe('CLI', () => {
     assert.equal(preview.summary.fraud_rate_requested, 0.06);
   });
 
+  it('generates benchmark suites with impact reports', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-benchmark-'));
+
+    try {
+      const result = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'benchmark',
+        '--suite',
+        'uk-fincrime',
+        '--users',
+        '30',
+        '--out',
+        out,
+        '--seed',
+        'cli-benchmark-test',
+        '--pretty'
+      ]);
+
+      assert.match(result.stdout, /UK financial crime benchmark/);
+      const suite = JSON.parse(await readFile(join(out, 'benchmark_suite.json'), 'utf8'));
+      const report = JSON.parse(await readFile(join(out, 'impact_report.json'), 'utf8'));
+      const html = await readFile(join(out, 'impact_report.html'), 'utf8');
+
+      assert.equal(suite.name, 'uk_fincrime');
+      assert.equal(report.totals.users, 30);
+      assert.match(html, /UK financial crime benchmark/);
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
+  it('evaluates prediction files and writes impact reports', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-evaluate-'));
+
+    try {
+      await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'benchmark',
+        '--suite',
+        'open-banking-risk',
+        '--users',
+        '25',
+        '--out',
+        out,
+        '--seed',
+        'cli-evaluate-test'
+      ]);
+
+      const transactions = JSON.parse(await readFile(join(out, 'transactions.json'), 'utf8'));
+      const predictionsPath = join(out, 'predictions.json');
+      await writeFile(
+        predictionsPath,
+        JSON.stringify(
+          transactions.map((transaction) => ({
+            transaction_id: transaction.transaction_id,
+            risk_score: transaction.risk_score
+          }))
+        )
+      );
+
+      const evaluation = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'evaluate',
+        '--truth',
+        join(out, 'transactions.json'),
+        '--predictions',
+        predictionsPath,
+        '--pretty'
+      ]);
+      const parsedEvaluation = JSON.parse(evaluation.stdout);
+      assert.equal(parsedEvaluation.total, transactions.length);
+      assert.ok('f1_score' in parsedEvaluation);
+
+      const report = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'report',
+        '--input',
+        out,
+        '--suite',
+        'open-banking-risk',
+        '--format',
+        'html'
+      ]);
+      assert.match(report.stdout, /Wrote HTML impact report/);
   it('lists country profiles and platform presets', async () => {
     const profiles = await execFileAsync(process.execPath, ['dist/cli.js', 'profiles']);
     assert.ok(JSON.parse(profiles.stdout).some((profile) => profile.code === 'KE'));

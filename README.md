@@ -22,6 +22,11 @@ npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
 npx fintech-fraud-sim profiles --pretty
 npx fintech-fraud-sim platforms --pretty
 npx fintech-fraud-sim use-cases --pretty
+npx fintech-fraud-sim benchmarks --pretty
+npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmark --seed demo
+npx fintech-fraud-sim benchmark --suite cross-border-remittance --users 10000 --out ./remittance-benchmark
+npx fintech-fraud-sim evaluate --truth ./uk-fincrime-benchmark/transactions.json --predictions ./model-predictions.csv --pretty
+npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime --format html
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
 npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 ```
@@ -137,6 +142,75 @@ Available presets:
 | `marketplace_trust` | Ecommerce, delivery, gig, and classifieds marketplaces. | Chargebacks, transaction spikes, account takeover, velocity abuse. |
 | `bank_aml` | Retail banks, business banks, AML monitoring vendors. | Mule accounts, beneficiary bursts, cross-border movement, transaction spikes. |
 | `bnpl_credit` | BNPL checkout, consumer lending, merchant financing. | Chargeback risk, transaction spikes, KYC abuse, account takeover. |
+
+### UK + Global Fraud Benchmark Suite
+
+Use benchmark suites when you need repeatable datasets for fraud model QA, risk rule regression tests, AML demos, open banking risk workflows, and evidence-friendly impact reporting.
+
+```bash
+npx fintech-fraud-sim benchmarks --pretty
+npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmark --seed demo
+npx fintech-fraud-sim benchmark --suite open-banking-risk --out ./open-banking-benchmark
+npx fintech-fraud-sim benchmark --suite cross-border-remittance --out ./remittance-benchmark
+npx fintech-fraud-sim benchmark --suite aml-sanctions --out ./aml-benchmark
+npx fintech-fraud-sim benchmark --suite global-fraud-mix --out ./global-benchmark
+```
+
+Available suites:
+
+| Suite | Built For | UK / Global Usefulness |
+| --- | --- | --- |
+| `uk_fincrime` | UK APP fraud, mule-account, takeover, and cashout control testing. | Helps banks and fintechs test UK financial crime controls with synthetic-only data. |
+| `open_banking_risk` | Consent, payment-initiation, account, and transaction-risk workflows. | Supports UK open banking and PSD2-style risk QA without exposing customer data. |
+| `cross_border_remittance` | UK-to-global remittance corridors such as `GB-NG`, `GB-GH`, `GB-KE`, `GB-IN`, and `GB-PK`. | Helps money transfer and fintech teams test cross-border AML and fraud controls. |
+| `aml_sanctions` | AML monitoring and synthetic sanctions-screening style fixtures. | Gives regtech teams safe data for false-positive, high-risk-flow, structuring, and layering tests. |
+| `global_fraud_mix` | Broad fintech fraud and model-evaluation datasets. | Useful for international fintech teams building from or into the UK market. |
+
+Each benchmark writes the normal dataset files plus:
+
+```text
+benchmark_suite.json
+impact_report.json
+impact_report.html
+```
+
+`impact_report.json` and `impact_report.html` summarize fraud exposure, estimated preventable loss, review workload, customer friction events, corridor breakdowns, fraud patterns, and top risk reason codes.
+
+### `evaluate`
+
+Evaluate fraud model predictions against generated transaction ground truth:
+
+```bash
+npx fintech-fraud-sim evaluate \
+  --truth ./uk-fincrime-benchmark/transactions.json \
+  --predictions ./model-predictions.csv \
+  --pretty
+```
+
+Prediction files can be JSON or CSV and should include `transaction_id` plus one of `risk_score`, `score`, `prediction`, `predicted_suspicious`, or `is_suspicious`.
+
+The output includes:
+
+```text
+precision
+recall
+f1_score
+false_positive_rate
+false_negative_rate
+pattern_detection_rate
+estimated_fraud_loss_prevented
+estimated_manual_review_cost
+```
+
+### `report`
+
+Build or rebuild an economic impact report from a generated JSON output directory:
+
+```bash
+npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime --format html
+```
+
+This is useful for demos, technical articles, portfolio evidence, and explaining how synthetic fraud data can support safer fintech innovation, privacy-preserving AI development, and UK/global financial crime control testing.
 
 ## Output Files
 

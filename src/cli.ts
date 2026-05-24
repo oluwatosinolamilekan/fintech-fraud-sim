@@ -1,8 +1,20 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
+import { writeFile } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+import {
+  BENCHMARK_SUITE_NAMES,
+  BENCHMARK_SUITES,
+  buildImpactReportFromDirectory,
+  evaluatePredictionsFromFiles,
+  generateBenchmarkSuite,
+  parseBenchmarkSuite,
+  writeBenchmarkRun,
+  writeImpactReport,
+  type ImpactReportFormat
+} from './benchmarks.js';
 import { generateDataset } from './generator.js';
 import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
@@ -20,6 +32,7 @@ const program = new Command();
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json') as { version: string };
 const USE_CASE_HELP = 'preset for consumer_fintech, social_payments, crypto_exchange, marketplace_trust, bank_aml, or bnpl_credit';
+const BENCHMARK_HELP = `benchmark suite for ${BENCHMARK_SUITE_NAMES.join(', ')}`;
 type GenerateConfig = Partial<Omit<GenerateOptions, 'patterns' | 'paymentRails'>> & {
   fraud_rate?: number;
   use_case?: string;
@@ -160,6 +173,107 @@ program
   });
 
 program
+  .command('benchmarks')
+  .description('List UK and global fraud benchmark suites.')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action((rawOptions) => {
+    const rows = Object.values(BENCHMARK_SUITES);
+    console.log(JSON.stringify(rows, null, rawOptions.pretty ? 2 : 0));
+  });
+
+program
+  .command('benchmark')
+  .description('Generate a UK/global fraud simulation benchmark suite with an impact report.')
+  .requiredOption('--suite <name>', BENCHMARK_HELP, parseBenchmarkSuiteOption)
+  .option('--users <number>', 'number of users to generate', parseIntegerOption('--users'))
+  .option('--fraud-rate <number>', 'fraction of users to label as fraud, between 0 and 1', parseNumberOption('--fraud-rate'))
+  .option('--out <path>', 'output directory', './benchmark-output')
+  .option('--seed <value>', 'string or number seed for deterministic output')
+  .option('--transactions-min <number>', 'minimum transactions per non-fraud user', parseIntegerOption('--transactions-min'))
+  .option('--transactions-max <number>', 'maximum transactions per non-fraud user', parseIntegerOption('--transactions-max'))
+  .option('--pretty', 'write formatted JSON output', false)
+  .action(async (rawOptions) => {
+    try {
+      const suiteName = rawOptions.suite as ReturnType<typeof parseBenchmarkSuite>;
+      const suite = BENCHMARK_SUITES[suiteName];
+      const out = resolve(rawOptions.out as string);
+      const run = generateBenchmarkSuite(suiteName, {
+        users: rawOptions.users ?? suite.defaults.users,
+        fraudRate: rawOptions.fraudRate ?? suite.defaults.fraudRate,
+        country: suite.defaults.country,
+        currency: suite.defaults.currency,
+        patterns: suite.defaults.patterns,
+        transactionsMin: rawOptions.transactionsMin ?? suite.defaults.transactionsMin,
+        transactionsMax: rawOptions.transactionsMax ?? suite.defaults.transactionsMax,
+        format: 'json',
+        out,
+        seed: rawOptions.seed as string | number | undefined,
+        pretty: Boolean(rawOptions.pretty)
+      });
+
+      await writeBenchmarkRun(run, out, Boolean(rawOptions.pretty));
+      console.log(`Generated ${run.suite.label} in ${out}`);
+      console.log(`Suspicious transactions: ${run.dataset.summary.suspicious_transactions_generated}; estimated preventable loss: ${run.report.operational_impact.estimated_preventable_loss}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('evaluate')
+  .description('Evaluate model predictions against generated transaction ground truth.')
+  .requiredOption('--truth <path>', 'transactions.json or transactions.csv with is_suspicious ground truth')
+  .requiredOption('--predictions <path>', 'JSON or CSV predictions with transaction_id and risk_score, score, prediction, or is_suspicious')
+  .option('--threshold <number>', 'risk score threshold for numeric predictions', parseNumberOption('--threshold'), 75)
+  .option('--out <path>', 'optional path to write evaluation JSON')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action(async (rawOptions) => {
+    try {
+      const summary = await evaluatePredictionsFromFiles(
+        resolve(rawOptions.truth as string),
+        resolve(rawOptions.predictions as string),
+        rawOptions.threshold as number
+      );
+      const output = JSON.stringify(summary, null, rawOptions.pretty ? 2 : 0);
+      if (rawOptions.out) {
+        await writeFile(resolve(rawOptions.out as string), output);
+        console.log(`Wrote evaluation summary to ${resolve(rawOptions.out as string)}`);
+        return;
+      }
+      console.log(output);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('report')
+  .description('Build an economic impact report from a generated JSON output directory.')
+  .requiredOption('--input <path>', 'directory containing transactions.json and summary.json')
+  .option('--suite <name>', BENCHMARK_HELP, parseBenchmarkSuiteOption)
+  .option('--format <json|html>', 'report format', parseReportFormatOption, 'json')
+  .option('--out <path>', 'output report path')
+  .action(async (rawOptions) => {
+    try {
+      const suiteName = rawOptions.suite as ReturnType<typeof parseBenchmarkSuite> | undefined;
+      const format = rawOptions.format as ImpactReportFormat;
+      const input = resolve(rawOptions.input as string);
+      const report = await buildImpactReportFromDirectory(input, suiteName);
+      const out = resolve(rawOptions.out as string | undefined ?? join(input, `impact_report.${format}`));
+      await writeImpactReport(report, out, format, suiteName ? BENCHMARK_SUITES[suiteName] : undefined);
+      console.log(`Wrote ${format.toUpperCase()} impact report to ${out}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command('schema')
   .description('Print or export JSON Schema files for generated data.')
   .option('--target <users|accounts|devices|beneficiaries|merchants|transactions|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
@@ -296,4 +410,20 @@ function parseSchemaTargetOption(value: string): SchemaTarget {
     throw new InvalidArgumentError('--target must be one of: users, accounts, devices, beneficiaries, merchants, transactions, summary, all');
   }
   return target;
+}
+
+function parseBenchmarkSuiteOption(value: string): ReturnType<typeof parseBenchmarkSuite> {
+  try {
+    return parseBenchmarkSuite(value);
+  } catch (error) {
+    throw new InvalidArgumentError(error instanceof Error ? error.message : String(error));
+  }
+}
+
+function parseReportFormatOption(value: string): ImpactReportFormat {
+  const format = value.toLowerCase();
+  if (format !== 'json' && format !== 'html') {
+    throw new InvalidArgumentError('--format must be one of: json, html');
+  }
+  return format;
 }
