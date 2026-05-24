@@ -1,4 +1,25 @@
 export { generateDataset } from './generator.js';
+export {
+  BENCHMARK_SUITE_NAMES,
+  BENCHMARK_SUITES,
+  buildImpactReport,
+  buildImpactReportFromDirectory,
+  evaluatePredictions,
+  evaluatePredictionsFromFiles,
+  generateBenchmarkSuite,
+  parseBenchmarkSuite,
+  renderImpactReportHtml,
+  writeBenchmarkRun,
+  writeImpactReport
+} from './benchmarks.js';
+export type {
+  BenchmarkRun,
+  BenchmarkSuite,
+  BenchmarkSuiteName,
+  EvaluationSummary,
+  ImpactReport,
+  ImpactReportFormat
+} from './benchmarks.js';
 export { PATTERN_DEFINITIONS, PATTERN_REASON_CODES, applyFraudPattern } from './patterns.js';
 export { actionForRiskScore, scoreTransactionRisk, scoreUserRisk } from './risk.js';
 export {
