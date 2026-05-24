@@ -1,8 +1,21 @@
 import { faker } from '@faker-js/faker';
-import { FRAUD_PATTERNS, FraudPattern, GenerateOptions, OutputFormat } from './types.js';
+import { FRAUD_PATTERNS, FraudPattern, GenerateOptions, OutputFormat, PaymentRail } from './types.js';
 
 export const COUNTRY_POOL = ['NG', 'GH', 'KE', 'ZA', 'US', 'GB', 'CA', 'AE', 'IN', 'CN'];
 export const REVIEW_THRESHOLD = 500000;
+export const PAYMENT_RAILS: PaymentRail[] = [
+  'bank_transfer',
+  'wallet_transfer',
+  'card',
+  'ach',
+  'sepa',
+  'swift',
+  'mobile_money',
+  'crypto_wallet',
+  'cashout',
+  'merchant_payment',
+  'payout'
+];
 
 export class SimRandom {
   private state: number;
@@ -92,6 +105,22 @@ export function parsePatterns(value?: string): FraudPattern[] {
   return patterns as FraudPattern[];
 }
 
+export function parsePaymentRails(value?: string): PaymentRail[] | undefined {
+  if (!value || value.trim() === '') {
+    return undefined;
+  }
+
+  const rails = value
+    .split(',')
+    .map((rail) => rail.trim().toLowerCase())
+    .filter(Boolean);
+  const invalid = rails.filter((rail) => !PAYMENT_RAILS.includes(rail as PaymentRail));
+  if (invalid.length > 0) {
+    throw new Error(`Unknown payment rail(s): ${invalid.join(', ')}. Allowed rails: ${PAYMENT_RAILS.join(', ')}`);
+  }
+  return rails as PaymentRail[];
+}
+
 function normalizePatternAlias(pattern: string): string {
   return pattern === 'mule' ? 'mule_account' : pattern;
 }
@@ -132,6 +161,15 @@ export function validateGenerateOptions(options: GenerateOptions): void {
   }
   if (options.currency.trim().length < 3) {
     throw new Error('--currency must be a currency code such as NGN');
+  }
+  if (options.paymentRails !== undefined) {
+    const invalidRails = options.paymentRails.filter((rail) => !PAYMENT_RAILS.includes(rail));
+    if (options.paymentRails.length === 0) {
+      throw new Error('At least one payment rail must be selected');
+    }
+    if (invalidRails.length > 0) {
+      throw new Error(`Unknown payment rail(s): ${invalidRails.join(', ')}. Allowed rails: ${PAYMENT_RAILS.join(', ')}`);
+    }
   }
 }
 

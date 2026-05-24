@@ -13,6 +13,8 @@ export const USER_SCHEMA: JsonSchema = {
   required: [
     'user_id',
     'country',
+    'identity_type',
+    'kyc_provider',
     'account_age_days',
     'kyc_status',
     'failed_kyc_attempts',
@@ -32,6 +34,10 @@ export const USER_SCHEMA: JsonSchema = {
   properties: {
     user_id: { type: 'string' },
     country: { type: 'string', minLength: 2, maxLength: 2 },
+    identity_type: {
+      enum: ['national_id', 'passport', 'drivers_license', 'tax_id', 'bvn_like_id', 'ssn_like_id', 'mobile_money_id']
+    },
+    kyc_provider: { type: 'string' },
     account_age_days: { type: 'integer', minimum: 0 },
     kyc_status: { enum: ['verified', 'pending', 'rejected'] },
     failed_kyc_attempts: { type: 'integer', minimum: 0 },
@@ -74,6 +80,7 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
     'timestamp',
     'amount',
     'currency',
+    'payment_rail',
     'channel',
     'beneficiary_id',
     'beneficiary_country',
@@ -94,6 +101,21 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
     timestamp: { type: 'string', format: 'date-time' },
     amount: { type: 'number', minimum: 0 },
     currency: { type: 'string', minLength: 3 },
+    payment_rail: {
+      enum: [
+        'bank_transfer',
+        'wallet_transfer',
+        'card',
+        'ach',
+        'sepa',
+        'swift',
+        'mobile_money',
+        'crypto_wallet',
+        'cashout',
+        'merchant_payment',
+        'payout'
+      ]
+    },
     channel: { enum: ['mobile_app', 'web', 'api', 'pos', 'ussd'] },
     beneficiary_id: { type: 'string' },
     beneficiary_country: { type: 'string', minLength: 2, maxLength: 2 },
@@ -130,7 +152,7 @@ export const ACCOUNT_SCHEMA: JsonSchema = {
   properties: {
     account_id: { type: 'string' },
     user_id: { type: 'string' },
-    account_type: { enum: ['wallet', 'savings', 'current'] },
+    account_type: { enum: ['wallet', 'savings', 'current', 'checking', 'mobile_money', 'crypto', 'merchant', 'credit'] },
     currency: { type: 'string', minLength: 3 },
     balance: { type: 'number', minimum: 0 },
     status: { enum: ['active', 'restricted', 'closed'] },
@@ -168,7 +190,7 @@ export const BENEFICIARY_SCHEMA: JsonSchema = {
   properties: {
     beneficiary_id: { type: 'string' },
     user_id: { type: 'string' },
-    beneficiary_type: { enum: ['bank_account', 'wallet', 'card'] },
+    beneficiary_type: { enum: ['bank_account', 'wallet', 'card', 'mobile_money', 'crypto_wallet'] },
     beneficiary_country: { type: 'string', minLength: 2, maxLength: 2 },
     bank_code: { type: 'string' },
     added_at: { type: 'string', format: 'date-time' },
@@ -186,7 +208,20 @@ export const MERCHANT_SCHEMA: JsonSchema = {
   properties: {
     merchant_id: { type: 'string' },
     merchant_name: { type: 'string' },
-    category: { enum: ['airtime', 'bill_payments', 'ecommerce', 'gaming', 'groceries', 'travel'] },
+    category: {
+      enum: [
+        'airtime',
+        'bill_payments',
+        'ecommerce',
+        'gaming',
+        'groceries',
+        'travel',
+        'creator_payout',
+        'digital_goods',
+        'remittance',
+        'lending'
+      ]
+    },
     country: { type: 'string', minLength: 2, maxLength: 2 },
     risk_tier: { enum: ['low', 'medium', 'high', 'critical'] },
     is_high_risk: { type: 'boolean' }
@@ -210,6 +245,8 @@ export const SUMMARY_SCHEMA: JsonSchema = {
     'suspicious_transactions_generated',
     'fraud_pattern_breakdown',
     'use_case',
+    'platform',
+    'country_profile',
     'generated_at',
     'seed'
   ],
@@ -235,6 +272,8 @@ export const SUMMARY_SCHEMA: JsonSchema = {
         'bnpl_credit'
       ]
     },
+    platform: { type: ['string', 'null'] },
+    country_profile: { type: 'string' },
     generated_at: { type: 'string', format: 'date-time' },
     seed: { type: ['string', 'number', 'null'] }
   }

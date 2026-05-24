@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker';
 import {
   Channel,
   FraudPattern,
+  PaymentRail,
   RiskLabel,
   SyntheticBeneficiary,
   SyntheticTransaction,
@@ -13,6 +14,7 @@ import { countryOtherThan, currencyMinorUnits, REVIEW_THRESHOLD, SimRandom, synt
 
 const HIGH_RISK_STATUSES: TransactionStatus[] = ['completed', 'pending', 'reversed'];
 const CHANNELS: Channel[] = ['mobile_app', 'web', 'api', 'pos', 'ussd'];
+const PAYMENT_RAILS: PaymentRail[] = ['bank_transfer', 'wallet_transfer', 'card', 'mobile_money', 'merchant_payment'];
 
 export const PATTERN_DEFINITIONS: Record<FraudPattern, string> = {
   mule_account: 'New account with high beneficiary count and frequent incoming or outgoing transfers.',
@@ -139,6 +141,8 @@ export function makeTransactionForUser(
     deviceIds: string[];
     beneficiaries: SyntheticBeneficiary[];
     merchantIds: string[];
+    channels?: Channel[];
+    paymentRails?: PaymentRail[];
   }
 ): SyntheticTransaction {
   const pattern = user.fraud_pattern;
@@ -166,7 +170,8 @@ export function makeTransactionForUser(
     timestamp: new Date(baseTimeMs - minutesAgo * 60_000).toISOString(),
     amount,
     currency,
-    channel: channelForPattern(pattern, isSuspicious, rng),
+    payment_rail: paymentRailForPattern(pattern, isSuspicious, relations.paymentRails ?? PAYMENT_RAILS, rng),
+    channel: channelForPattern(pattern, isSuspicious, relations.channels ?? CHANNELS, rng),
     beneficiary_id: beneficiaryForCountry(relations.beneficiaries, beneficiaryCountry, rng).beneficiary_id,
     beneficiary_country: beneficiaryCountry,
     merchant_id: rng.pick(relations.merchantIds),
@@ -244,17 +249,48 @@ function amountForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious:
   }
 }
 
-function channelForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious: boolean, rng: SimRandom): Channel {
+function paymentRailForPattern(
+  pattern: SyntheticUser['fraud_pattern'],
+  isSuspicious: boolean,
+  rails: PaymentRail[],
+  rng: SimRandom
+): PaymentRail {
   if (!isSuspicious) {
-    return rng.pick(CHANNELS);
+    return rng.pick(rails);
+  }
+  if (pattern === 'cross_border_anomaly') {
+    return pickPreferredRail(['swift', 'sepa', 'crypto_wallet', 'mobile_money', 'bank_transfer'], rails, rng);
+  }
+  if (pattern === 'beneficiary_burst' || pattern === 'mule_account') {
+    return pickPreferredRail(['bank_transfer', 'wallet_transfer', 'mobile_money', 'cashout'], rails, rng);
+  }
+  if (pattern === 'chargeback_risk') {
+    return pickPreferredRail(['card', 'merchant_payment'], rails, rng);
+  }
+  return rng.pick(rails);
+}
+
+function pickPreferredRail(preferred: PaymentRail[], rails: PaymentRail[], rng: SimRandom): PaymentRail {
+  const matches = preferred.filter((rail) => rails.includes(rail));
+  return rng.pick(matches.length > 0 ? matches : rails);
+}
+
+function channelForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious: boolean, channels: Channel[], rng: SimRandom): Channel {
+  if (!isSuspicious) {
+    return rng.pick(channels);
   }
   if (pattern === 'velocity_abuse') {
-    return rng.pick(['api', 'mobile_app']);
+    return pickPreferredChannel(['api', 'mobile_app'], channels, rng);
   }
   if (pattern === 'account_takeover') {
-    return rng.pick(['web', 'mobile_app']);
+    return pickPreferredChannel(['web', 'mobile_app'], channels, rng);
   }
-  return rng.pick(CHANNELS);
+  return rng.pick(channels);
+}
+
+function pickPreferredChannel(preferred: Channel[], channels: Channel[], rng: SimRandom): Channel {
+  const matches = preferred.filter((channel) => channels.includes(channel));
+  return rng.pick(matches.length > 0 ? matches : channels);
 }
 
 export function fakeTimestampWithinLastYear(rng: SimRandom): string {

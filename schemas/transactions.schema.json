@@ -10,6 +10,7 @@
     "timestamp",
     "amount",
     "currency",
+    "payment_rail",
     "channel",
     "beneficiary_id",
     "beneficiary_country",
@@ -44,6 +45,21 @@
     "currency": {
       "type": "string",
       "minLength": 3
+    },
+    "payment_rail": {
+      "enum": [
+        "bank_transfer",
+        "wallet_transfer",
+        "card",
+        "ach",
+        "sepa",
+        "swift",
+        "mobile_money",
+        "crypto_wallet",
+        "cashout",
+        "merchant_payment",
+        "payout"
+      ]
     },
     "channel": {
       "enum": [

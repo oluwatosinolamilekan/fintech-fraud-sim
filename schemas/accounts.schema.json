@@ -25,7 +25,12 @@
       "enum": [
         "wallet",
         "savings",
-        "current"
+        "current",
+        "checking",
+        "mobile_money",
+        "crypto",
+        "merchant",
+        "credit"
       ]
     },
     "currency": {

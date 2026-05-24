@@ -11,6 +11,15 @@ export const FRAUD_PATTERNS = [
 
 export type FraudPattern = (typeof FRAUD_PATTERNS)[number];
 export type OutputFormat = 'csv' | 'json' | 'ndjson' | 'sql' | 'both' | 'all';
+export type BuiltInPlatformName =
+  | 'fintech'
+  | 'marketplace'
+  | 'crypto'
+  | 'social'
+  | 'gaming'
+  | 'lending'
+  | 'remittance';
+export type PlatformName = BuiltInPlatformName | (string & {});
 export type UseCaseName =
   | 'consumer_fintech'
   | 'social_payments'
@@ -23,11 +32,70 @@ export type RiskLabel = 'low' | 'medium' | 'high' | 'critical';
 export type RecommendedAction = 'allow' | 'review' | 'block';
 export type TransactionStatus = 'completed' | 'pending' | 'failed' | 'reversed';
 export type Channel = 'mobile_app' | 'web' | 'api' | 'pos' | 'ussd';
+export type PaymentRail =
+  | 'bank_transfer'
+  | 'wallet_transfer'
+  | 'card'
+  | 'ach'
+  | 'sepa'
+  | 'swift'
+  | 'mobile_money'
+  | 'crypto_wallet'
+  | 'cashout'
+  | 'merchant_payment'
+  | 'payout';
+export type IdentityType =
+  | 'national_id'
+  | 'passport'
+  | 'drivers_license'
+  | 'tax_id'
+  | 'bvn_like_id'
+  | 'ssn_like_id'
+  | 'mobile_money_id';
 export type AccountStatus = 'active' | 'restricted' | 'closed';
-export type AccountType = 'wallet' | 'savings' | 'current';
+export type AccountType = 'wallet' | 'savings' | 'current' | 'checking' | 'mobile_money' | 'crypto' | 'merchant' | 'credit';
 export type DeviceType = 'android' | 'ios' | 'web' | 'pos_terminal';
-export type BeneficiaryType = 'bank_account' | 'wallet' | 'card';
-export type MerchantCategory = 'airtime' | 'bill_payments' | 'ecommerce' | 'gaming' | 'groceries' | 'travel';
+export type BeneficiaryType = 'bank_account' | 'wallet' | 'card' | 'mobile_money' | 'crypto_wallet';
+export type MerchantCategory =
+  | 'airtime'
+  | 'bill_payments'
+  | 'ecommerce'
+  | 'gaming'
+  | 'groceries'
+  | 'travel'
+  | 'creator_payout'
+  | 'digital_goods'
+  | 'remittance'
+  | 'lending';
+
+export interface CountryProfile {
+  code: string;
+  label: string;
+  currency: string;
+  channels: Channel[];
+  paymentRails: PaymentRail[];
+  accountTypes: AccountType[];
+  beneficiaryTypes: BeneficiaryType[];
+  merchantCategories: MerchantCategory[];
+  identityTypes: IdentityType[];
+  kycProviders: string[];
+  bankCodeLength: number;
+}
+
+export interface PlatformPreset {
+  name: PlatformName;
+  label: string;
+  description: string;
+  defaults: Partial<Pick<GenerateOptions, 'fraudRate' | 'patterns' | 'transactionsMin' | 'transactionsMax' | 'paymentRails'>>;
+  merchantCategories: MerchantCategory[];
+}
+
+export interface GenerationPlugin {
+  name: string;
+  countryProfiles?: CountryProfile[];
+  platformPresets?: PlatformPreset[];
+  configureOptions?: (options: GenerateOptions) => Partial<GenerateOptions> | GenerateOptions;
+}
 
 export interface GenerateOptions {
   users: number;
@@ -36,7 +104,11 @@ export interface GenerateOptions {
   out: string;
   country: string;
   currency: string;
+  profile?: string;
+  platform?: PlatformName;
+  paymentRails?: PaymentRail[];
   patterns: FraudPattern[];
+  plugins?: GenerationPlugin[];
   seed?: string | number;
   transactionsMin: number;
   transactionsMax: number;
@@ -47,6 +119,8 @@ export interface GenerateOptions {
 export interface SyntheticUser {
   user_id: string;
   country: string;
+  identity_type: IdentityType;
+  kyc_provider: string;
   account_age_days: number;
   kyc_status: KycStatus;
   failed_kyc_attempts: number;
@@ -71,6 +145,7 @@ export interface SyntheticTransaction {
   timestamp: string;
   amount: number;
   currency: string;
+  payment_rail: PaymentRail;
   channel: Channel;
   beneficiary_id: string;
   beneficiary_country: string;
@@ -151,6 +226,8 @@ export interface GenerationSummary {
   suspicious_transactions_generated: number;
   fraud_pattern_breakdown: Record<string, number>;
   use_case: UseCaseName | null;
+  platform: PlatformName | null;
+  country_profile: string;
   generated_at: string;
   seed: string | number | null;
 }

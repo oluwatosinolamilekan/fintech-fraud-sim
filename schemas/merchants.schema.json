@@ -25,7 +25,11 @@
         "ecommerce",
         "gaming",
         "groceries",
-        "travel"
+        "travel",
+        "creator_payout",
+        "digital_goods",
+        "remittance",
+        "lending"
       ]
     },
     "country": {

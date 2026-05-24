@@ -6,6 +6,8 @@
   "required": [
     "user_id",
     "country",
+    "identity_type",
+    "kyc_provider",
     "account_age_days",
     "kyc_status",
     "failed_kyc_attempts",
@@ -30,6 +32,20 @@
       "type": "string",
       "minLength": 2,
       "maxLength": 2
+    },
+    "identity_type": {
+      "enum": [
+        "national_id",
+        "passport",
+        "drivers_license",
+        "tax_id",
+        "bvn_like_id",
+        "ssn_like_id",
+        "mobile_money_id"
+      ]
+    },
+    "kyc_provider": {
+      "type": "string"
     },
     "account_age_days": {
       "type": "integer",

@@ -29,6 +29,14 @@ export {
   parseUseCase,
   patternsForUseCase
 } from './use-cases.js';
+export { getCountryProfile, listCountryProfiles, registerCountryProfile } from './country-profiles.js';
+export { PLATFORM_NAMES, getPlatformPreset, listPlatformPresets, parsePlatform, registerPlatformPreset } from './platforms.js';
+export {
+  applyGenerationPlugins,
+  defineGenerationPlugin,
+  listGenerationPlugins,
+  registerGenerationPlugin
+} from './plugins.js';
 export {
   getSchemas,
   writeSchemas,
@@ -49,15 +57,22 @@ export type {
   AccountStatus,
   AccountType,
   BeneficiaryType,
+  BuiltInPlatformName,
   Channel,
+  CountryProfile,
   DeviceType,
   FraudPattern,
+  GenerationPlugin,
   GeneratedDataset,
   GenerateOptions,
   GenerationSummary,
+  IdentityType,
   KycStatus,
   MerchantCategory,
   OutputFormat,
+  PaymentRail,
+  PlatformName,
+  PlatformPreset,
   RecommendedAction,
   RiskLabel,
   SyntheticAccount,
