@@ -179,6 +179,11 @@ describe('CLI', () => {
         'html'
       ]);
       assert.match(report.stdout, /Wrote HTML impact report/);
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
   it('lists country profiles and platform presets', async () => {
     const profiles = await execFileAsync(process.execPath, ['dist/cli.js', 'profiles']);
     assert.ok(JSON.parse(profiles.stdout).some((profile) => profile.code === 'KE'));
