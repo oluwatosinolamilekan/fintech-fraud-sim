@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
-import { writeFile } from 'node:fs/promises';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import {
@@ -16,6 +15,7 @@ import {
   type ImpactReportFormat
 } from './benchmarks.js';
 import { generateDataset } from './generator.js';
+import { inferScenarioFromPrompt } from './scenario.js';
 import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
@@ -133,6 +133,50 @@ program
           rawOptions.pretty ? 2 : 0
         )
       );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('scenario')
+  .description('Infer a fraud simulation from a natural-language AI scenario prompt.')
+  .argument('<prompt...>', 'scenario prompt, for example "UK-Nigeria remittance mule cashout with beneficiary bursts"')
+  .option('--users <number>', 'override inferred number of users', parseIntegerOption('--users'))
+  .option('--fraud-rate <number>', 'override inferred fraud rate', parseNumberOption('--fraud-rate'))
+  .option('--format <csv|json|ndjson|sql|both|all>', 'output format', parseOutputFormatOption, 'json')
+  .option('--out <path>', 'output directory', './scenario-output')
+  .option('--seed <value>', 'string or number seed for deterministic output')
+  .option('--plan-only', 'print the inferred scenario plan without writing generated data', false)
+  .option('--pretty', 'write formatted JSON output', false)
+  .action(async (promptParts: string[], rawOptions) => {
+    try {
+      const prompt = promptParts.join(' ');
+      const out = resolve(rawOptions.out as string);
+      const plan = inferScenarioFromPrompt(prompt, {
+        users: rawOptions.users,
+        fraudRate: rawOptions.fraudRate,
+        format: rawOptions.format,
+        out,
+        seed: rawOptions.seed as string | number | undefined,
+        pretty: Boolean(rawOptions.pretty)
+      });
+
+      if (rawOptions.planOnly) {
+        console.log(JSON.stringify(plan, null, rawOptions.pretty ? 2 : 0));
+        return;
+      }
+
+      const dataset = generateDataset(plan.options);
+      await writeGeneratedDataset(dataset, plan.options);
+      await mkdir(out, { recursive: true });
+      await writeFile(join(out, 'scenario_plan.json'), JSON.stringify(plan, null, rawOptions.pretty ? 2 : 0));
+
+      console.log(`Generated ${plan.title} in ${out}`);
+      console.log(`Patterns: ${plan.options.patterns.join(', ')}; fraud rate: ${plan.options.fraudRate}`);
+      console.log(`Fraud users: ${dataset.summary.fraud_users_generated}; suspicious transactions: ${dataset.summary.suspicious_transactions_generated}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
@@ -299,6 +343,21 @@ program
 
 program.parseAsync();
 
+async function writeGeneratedDataset(dataset: ReturnType<typeof generateDataset>, options: GenerateOptions): Promise<void> {
+  if (options.format === 'csv' || options.format === 'both' || options.format === 'all') {
+    await writeCsv(dataset, options.out);
+  }
+  if (options.format === 'json' || options.format === 'both' || options.format === 'all') {
+    await writeJson(dataset, options.out, options.pretty);
+  }
+  if (options.format === 'ndjson' || options.format === 'all') {
+    await writeNdjson(dataset, options.out);
+  }
+  if (options.format === 'sql' || options.format === 'all') {
+    await writeSql(dataset, options.out);
+  }
+}
+
 async function buildGenerateOptions(rawOptions: Record<string, unknown>, command?: Command): Promise<GenerateOptions> {
   const config = await readGenerateConfig(rawOptions.config as string | undefined);
   const hasExplicitValue = (key: string): boolean => {
@@ -393,6 +452,14 @@ function parseNumberOption(flag: string) {
       throw new InvalidArgumentError(error instanceof Error ? error.message : String(error));
     }
   };
+}
+
+function parseOutputFormatOption(value: string) {
+  try {
+    return parseOutputFormat(value);
+  } catch (error) {
+    throw new InvalidArgumentError(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function parseSchemaTargetOption(value: string): SchemaTarget {

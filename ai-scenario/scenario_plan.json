@@ -1,0 +1,51 @@
+{
+  "prompt": "UK-Nigeria remittance mule cashout with beneficiary bursts",
+  "title": "AI-inferred remittance fraud scenario",
+  "summary": "Cross-border remittance simulation focused on corridor risk, beneficiary bursts, mule accounts, and cashout.",
+  "inferred_signals": [
+    "country:GB",
+    "currency:GBP",
+    "platform:remittance",
+    "pattern:mule_account",
+    "pattern:cross_border_anomaly",
+    "pattern:beneficiary_burst",
+    "payment_rail:swift",
+    "payment_rail:mobile_money",
+    "payment_rail:cashout",
+    "payment_rail:bank_transfer",
+    "payment_rail:wallet_transfer",
+    "corridor:GB-NG/NG"
+  ],
+  "rationale": [
+    "Selected GB/GBP because the prompt mentions a matching market or no stronger market signal.",
+    "Selected mule_account, cross_border_anomaly, beneficiary_burst because the prompt maps to those fraud typologies.",
+    "Selected 2-30 transactions per normal user to fit the scenario activity level.",
+    "Selected remittance platform defaults for product-specific rails and behavior."
+  ],
+  "options": {
+    "users": 3500,
+    "fraudRate": 0.11,
+    "format": "json",
+    "out": "/Users/lamidiolamilekan/projects/CLSCORIVA/ai-scenario",
+    "country": "GB",
+    "currency": "GBP",
+    "profile": "GB",
+    "platform": "remittance",
+    "paymentRails": [
+      "swift",
+      "mobile_money",
+      "cashout",
+      "bank_transfer",
+      "wallet_transfer"
+    ],
+    "patterns": [
+      "mule_account",
+      "cross_border_anomaly",
+      "beneficiary_burst"
+    ],
+    "seed": "demo",
+    "transactionsMin": 2,
+    "transactionsMax": 30,
+    "pretty": true
+  }
+}
