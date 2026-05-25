@@ -228,6 +228,53 @@ describe('CLI', () => {
     }
   });
 
+  it('exports generated data for ML training', async () => {
+    const generated = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-ml-generated-'));
+    const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-ml-cli-'));
+
+    try {
+      await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'generate',
+        '--users',
+        '30',
+        '--fraud-rate',
+        '0.2',
+        '--format',
+        'json',
+        '--out',
+        generated,
+        '--seed',
+        'cli-ml-export-source'
+      ]);
+
+      const result = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'ml-export',
+        '--input',
+        generated,
+        '--target',
+        'transactions',
+        '--out',
+        out,
+        '--split',
+        '0.7',
+        '--seed',
+        'cli-ml-export-split'
+      ]);
+      const metadata = JSON.parse(await readFile(join(out, 'feature_metadata.json'), 'utf8'));
+      const xTrain = await readFile(join(out, 'X_train.csv'), 'utf8');
+
+      assert.match(result.stdout, /Exported transactions ML dataset/);
+      assert.equal(metadata.target, 'transactions');
+      assert.equal(metadata.split, 0.7);
+      assert.match(xTrain, /^row_id,/);
+    } finally {
+      await rm(generated, { recursive: true, force: true });
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
   it('lists country profiles and platform presets', async () => {
     const profiles = await execFileAsync(process.execPath, ['dist/cli.js', 'profiles']);
     assert.ok(JSON.parse(profiles.stdout).some((profile) => profile.code === 'KE'));
