@@ -26,8 +26,10 @@
     "fintech-fraud-sim": "dist/cli.js"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "examples",
