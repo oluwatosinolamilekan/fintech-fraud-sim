@@ -1,6 +1,8 @@
 export { generateDataset } from './generator.js';
 export { inferScenarioFromPrompt } from './scenario.js';
 export type { ScenarioOverrides, ScenarioPlan } from './scenario.js';
+export { exportMlTrainingDataset } from './ml-export.js';
+export type { MlExportOptions, MlExportTarget, MlFeatureMetadata } from './ml-export.js';
 export {
   BENCHMARK_SUITE_NAMES,
   BENCHMARK_SUITES,

@@ -27,6 +27,8 @@ npx fintech-fraud-sim scenario "crypto exchange KYC abuse and cross-border withd
 npx fintech-fraud-sim benchmarks --pretty
 npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmark --seed demo
 npx fintech-fraud-sim benchmark --suite cross-border-remittance --users 10000 --out ./remittance-benchmark
+npx fintech-fraud-sim ml-export --input ./uk-fincrime-benchmark --target transactions --out ./ml-training
+npx fintech-fraud-sim ml-export --input ./data --target users --split 0.75 --out ./user-risk-training
 npx fintech-fraud-sim evaluate --truth ./uk-fincrime-benchmark/transactions.json --predictions ./model-predictions.csv --pretty
 npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime --format html
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
@@ -201,6 +203,27 @@ impact_report.html
 ```
 
 `impact_report.json` and `impact_report.html` summarize fraud exposure, estimated preventable loss, review workload, customer friction events, corridor breakdowns, fraud patterns, and top risk reason codes.
+
+### `ml-export`
+
+Export generated JSON data as ML-ready train/test feature matrices and labels:
+
+```bash
+npx fintech-fraud-sim ml-export --input ./uk-fincrime-benchmark --target transactions --out ./ml-training
+npx fintech-fraud-sim ml-export --input ./data --target users --split 0.75 --out ./user-risk-training
+```
+
+The command writes:
+
+```text
+X_train.csv
+y_train.csv
+X_test.csv
+y_test.csv
+feature_metadata.json
+```
+
+`transactions` predicts `is_suspicious`; `users` predicts `is_fraud`. The exporter uses numeric features and one-hot encoded categorical fields while excluding direct target/leakage fields such as `fraud_pattern`, `recommended_action`, `reason_codes`, and generated risk scores.
 
 ### `evaluate`
 

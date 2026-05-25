@@ -16,6 +16,7 @@ import {
 } from './benchmarks.js';
 import { generateDataset } from './generator.js';
 import { inferScenarioFromPrompt } from './scenario.js';
+import { exportMlTrainingDataset, type MlExportTarget } from './ml-export.js';
 import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
@@ -318,6 +319,33 @@ program
   });
 
 program
+  .command('ml-export')
+  .description('Export generated JSON data as ML-ready train/test feature and label CSV files.')
+  .requiredOption('--input <path>', 'directory containing generated users.json and/or transactions.json')
+  .option('--target <transactions|users>', 'training target to export', parseMlExportTargetOption, 'transactions')
+  .option('--out <path>', 'output directory for X/y CSV files and feature metadata', './ml-export')
+  .option('--split <number>', 'fraction of rows to place in training set', parseNumberOption('--split'), 0.8)
+  .option('--seed <value>', 'string or number seed for deterministic train/test split')
+  .action(async (rawOptions) => {
+    try {
+      const result = await exportMlTrainingDataset({
+        input: resolve(rawOptions.input as string),
+        out: resolve(rawOptions.out as string),
+        target: rawOptions.target as MlExportTarget,
+        split: rawOptions.split as number,
+        seed: rawOptions.seed as string | number | undefined
+      });
+
+      console.log(`Exported ${result.metadata.target} ML dataset to ${resolve(rawOptions.out as string)}`);
+      console.log(`Train rows: ${result.metadata.train_rows}; test rows: ${result.metadata.test_rows}; features: ${result.metadata.features.length}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command('schema')
   .description('Print or export JSON Schema files for generated data.')
   .option('--target <users|accounts|devices|beneficiaries|merchants|transactions|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
@@ -493,4 +521,12 @@ function parseReportFormatOption(value: string): ImpactReportFormat {
     throw new InvalidArgumentError('--format must be one of: json, html');
   }
   return format;
+}
+
+function parseMlExportTargetOption(value: string): MlExportTarget {
+  const target = value.toLowerCase();
+  if (target !== 'transactions' && target !== 'users') {
+    throw new InvalidArgumentError('--target must be one of: transactions, users');
+  }
+  return target;
 }
