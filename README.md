@@ -22,6 +22,8 @@ npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
 npx fintech-fraud-sim profiles --pretty
 npx fintech-fraud-sim platforms --pretty
 npx fintech-fraud-sim use-cases --pretty
+npx fintech-fraud-sim scenario "UK-Nigeria remittance mule cashout with beneficiary bursts" --out ./ai-scenario --seed demo --pretty
+npx fintech-fraud-sim scenario "crypto exchange KYC abuse and cross-border withdrawal risk" --plan-only --pretty
 npx fintech-fraud-sim benchmarks --pretty
 npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmark --seed demo
 npx fintech-fraud-sim benchmark --suite cross-border-remittance --users 10000 --out ./remittance-benchmark
@@ -142,6 +144,30 @@ Available presets:
 | `marketplace_trust` | Ecommerce, delivery, gig, and classifieds marketplaces. | Chargebacks, transaction spikes, account takeover, velocity abuse. |
 | `bank_aml` | Retail banks, business banks, AML monitoring vendors. | Mule accounts, beneficiary bursts, cross-border movement, transaction spikes. |
 | `bnpl_credit` | BNPL checkout, consumer lending, merchant financing. | Chargeback risk, transaction spikes, KYC abuse, account takeover. |
+
+### AI Scenario Generation
+
+Use `scenario` to turn a natural-language fraud, AML, fintech, or AI-risk prompt into a deterministic synthetic dataset configuration.
+
+```bash
+npx fintech-fraud-sim scenario "UK-Nigeria remittance mule cashout with beneficiary bursts" --out ./ai-scenario --seed demo --pretty
+npx fintech-fraud-sim scenario "adversarial crypto exchange KYC abuse and cross-border withdrawal risk" --plan-only --pretty
+```
+
+The command infers:
+
+```text
+country
+currency
+platform
+use case
+payment rails
+fraud patterns
+fraud intensity
+transaction volume
+```
+
+When data is generated, the output directory includes `scenario_plan.json` alongside the normal generated files. The scenario plan explains the prompt, inferred signals, selected options, and rationale so teams can show how a natural-language AI prompt became a reproducible fraud benchmark.
 
 ### UK + Global Fraud Benchmark Suite
 

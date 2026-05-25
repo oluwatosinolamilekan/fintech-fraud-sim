@@ -1,4 +1,6 @@
 export { generateDataset } from './generator.js';
+export { inferScenarioFromPrompt } from './scenario.js';
+export type { ScenarioOverrides, ScenarioPlan } from './scenario.js';
 export {
   BENCHMARK_SUITE_NAMES,
   BENCHMARK_SUITES,

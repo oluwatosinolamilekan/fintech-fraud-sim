@@ -1,0 +1,21 @@
+{
+  "total_users": 3500,
+  "total_accounts": 3500,
+  "total_devices": 7215,
+  "total_beneficiaries": 20215,
+  "total_merchants": 438,
+  "total_transactions": 59781,
+  "fraud_rate_requested": 0.11,
+  "fraud_users_generated": 385,
+  "suspicious_transactions_generated": 7280,
+  "fraud_pattern_breakdown": {
+    "beneficiary_burst": 129,
+    "cross_border_anomaly": 131,
+    "mule_account": 125
+  },
+  "use_case": null,
+  "platform": "remittance",
+  "country_profile": "GB",
+  "generated_at": "2026-03-17T05:35:46.000Z",
+  "seed": "demo"
+}

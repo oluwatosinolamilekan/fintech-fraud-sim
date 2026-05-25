@@ -73,6 +73,50 @@ describe('CLI', () => {
     assert.equal(typeof preview.users[0].risk_score, 'number');
   });
 
+  it('generates AI-inferred scenarios from natural language', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-scenario-'));
+
+    try {
+      const result = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'scenario',
+        'UK-Nigeria remittance mule cashout with beneficiary bursts',
+        '--users',
+        '24',
+        '--out',
+        out,
+        '--seed',
+        'cli-scenario-test',
+        '--pretty'
+      ]);
+
+      assert.match(result.stdout, /AI-inferred remittance fraud scenario/);
+      const plan = JSON.parse(await readFile(join(out, 'scenario_plan.json'), 'utf8'));
+      const summary = JSON.parse(await readFile(join(out, 'summary.json'), 'utf8'));
+
+      assert.equal(plan.options.platform, 'remittance');
+      assert.ok(plan.options.patterns.includes('mule_account'));
+      assert.equal(summary.total_users, 24);
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
+  it('prints AI scenario plans without writing data', async () => {
+    const result = await execFileAsync(process.execPath, [
+      'dist/cli.js',
+      'scenario',
+      'adversarial crypto exchange KYC abuse and cross-border withdrawal risk',
+      '--plan-only',
+      '--pretty'
+    ]);
+    const plan = JSON.parse(result.stdout);
+
+    assert.equal(plan.options.platform, 'crypto');
+    assert.equal(plan.options.fraudRate, 0.14);
+    assert.ok(plan.rationale.some((item) => item.includes('adversarial')));
+  });
+
   it('lists production use cases and applies a use case preset', async () => {
     const cases = await execFileAsync(process.execPath, ['dist/cli.js', 'use-cases']);
     const parsedCases = JSON.parse(cases.stdout);
