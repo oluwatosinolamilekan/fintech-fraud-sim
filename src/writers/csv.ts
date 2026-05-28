@@ -29,7 +29,8 @@ const USER_FIELDS: (keyof SyntheticUser)[] = [
   'risk_label',
   'risk_score',
   'recommended_action',
-  'reason_codes'
+  'reason_codes',
+  'network_id'
 ];
 
 const TRANSACTION_FIELDS: (keyof SyntheticTransaction)[] = [
@@ -51,7 +52,8 @@ const TRANSACTION_FIELDS: (keyof SyntheticTransaction)[] = [
   'fraud_pattern',
   'risk_score',
   'recommended_action',
-  'reason_codes'
+  'reason_codes',
+  'network_id'
 ];
 
 const ACCOUNT_FIELDS: (keyof SyntheticAccount)[] = [
@@ -75,7 +77,8 @@ const DEVICE_FIELDS: (keyof SyntheticDevice)[] = [
   'last_seen_at',
   'country',
   'is_trusted',
-  'is_fraud_linked'
+  'is_fraud_linked',
+  'network_id'
 ];
 
 const BENEFICIARY_FIELDS: (keyof SyntheticBeneficiary)[] = [
@@ -86,7 +89,8 @@ const BENEFICIARY_FIELDS: (keyof SyntheticBeneficiary)[] = [
   'bank_code',
   'added_at',
   'is_recent',
-  'is_fraud_linked'
+  'is_fraud_linked',
+  'network_id'
 ];
 
 const MERCHANT_FIELDS: (keyof SyntheticMerchant)[] = [

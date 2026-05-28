@@ -12,7 +12,8 @@
     "last_seen_at",
     "country",
     "is_trusted",
-    "is_fraud_linked"
+    "is_fraud_linked",
+    "network_id"
   ],
   "properties": {
     "device_id": {
@@ -50,6 +51,12 @@
     },
     "is_fraud_linked": {
       "type": "boolean"
+    },
+    "network_id": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   }
 }

@@ -6,7 +6,8 @@ export const FRAUD_PATTERNS = [
   'chargeback_risk',
   'transaction_spike',
   'cross_border_anomaly',
-  'beneficiary_burst'
+  'beneficiary_burst',
+  'fraud_ring'
 ] as const;
 
 export type FraudPattern = (typeof FRAUD_PATTERNS)[number];
@@ -136,6 +137,7 @@ export interface SyntheticUser {
   risk_score: number;
   recommended_action: RecommendedAction;
   reason_codes: string[];
+  network_id: string | null;
 }
 
 export interface SyntheticTransaction {
@@ -158,6 +160,7 @@ export interface SyntheticTransaction {
   risk_score: number;
   recommended_action: RecommendedAction;
   reason_codes: string[];
+  network_id: string | null;
 }
 
 export interface SyntheticAccount {
@@ -182,6 +185,7 @@ export interface SyntheticDevice {
   country: string;
   is_trusted: boolean;
   is_fraud_linked: boolean;
+  network_id: string | null;
 }
 
 export interface SyntheticBeneficiary {
@@ -193,6 +197,7 @@ export interface SyntheticBeneficiary {
   added_at: string;
   is_recent: boolean;
   is_fraud_linked: boolean;
+  network_id: string | null;
 }
 
 export interface SyntheticMerchant {
@@ -225,6 +230,8 @@ export interface GenerationSummary {
   fraud_users_generated: number;
   suspicious_transactions_generated: number;
   fraud_pattern_breakdown: Record<string, number>;
+  fraud_networks_generated: number;
+  networked_fraud_users_generated: number;
   use_case: UseCaseName | null;
   platform: PlatformName | null;
   country_profile: string;

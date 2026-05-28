@@ -83,6 +83,7 @@ describe('ML training export', () => {
       assert.ok(result.metadata.features.includes('account_age_days'));
       assert.equal(result.metadata.features.includes('fraud_pattern'), false);
       assert.equal(result.metadata.features.includes('risk_score'), false);
+      assert.equal(result.metadata.features.includes('network_id'), false);
       assert.equal(result.metadata.train_rows + result.metadata.test_rows, dataset.users.length);
     } finally {
       await rm(input, { recursive: true, force: true });

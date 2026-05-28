@@ -22,7 +22,8 @@
     "fraud_pattern",
     "risk_score",
     "recommended_action",
-    "reason_codes"
+    "reason_codes",
+    "network_id"
   ],
   "properties": {
     "transaction_id": {
@@ -110,7 +111,8 @@
         "chargeback_risk",
         "transaction_spike",
         "cross_border_anomaly",
-        "beneficiary_burst"
+        "beneficiary_burst",
+        "fraud_ring"
       ]
     },
     "risk_score": {
@@ -130,6 +132,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "network_id": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   }
 }

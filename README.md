@@ -17,6 +17,7 @@ npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
 npx fintech-fraud-sim generate --users 1000 --country KE --platform remittance --payment-rails mobile_money,cashout
 npx fintech-fraud-sim generate --config ./fraud-sim.config.json --format ndjson
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
+npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.12 --patterns fraud_ring,mule_account --format json --out ./ring-fixtures
 npx fintech-fraud-sim generate --use-case crypto_exchange --format ndjson --out ./aml-fixtures
 npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
 npx fintech-fraud-sim profiles --pretty
@@ -60,7 +61,7 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | `--profile <code>` | same as `--country` | Country profile to use for local payment, KYC, merchant, account, and beneficiary behavior. |
 | `--platform <name>` | none | Platform preset: `fintech`, `marketplace`, `crypto`, `social`, `gaming`, `lending`, or `remittance`. |
 | `--payment-rails <list>` | profile/platform default | Comma-separated payment rails such as `bank_transfer`, `card`, `mobile_money`, `sepa`, `swift`, `crypto_wallet`, `cashout`, or `payout`. |
-| `--patterns <list>` | `all` | Comma-separated fraud patterns. `mule` is accepted as an alias for `mule_account`. |
+| `--patterns <list>` | `all` | Comma-separated fraud patterns. `mule` is accepted as an alias for `mule_account`; `fraud_ring` creates linked users with shared devices and beneficiaries. |
 | `--use-case <name>` | none | Apply production-oriented defaults for a product domain. Explicit flags override preset defaults. |
 | `--seed <value>` | none | String or number seed for deterministic output. |
 | `--transactions-min <number>` | `1` | Minimum transactions per non-fraud user. |
@@ -144,7 +145,7 @@ Available presets:
 | `social_payments` | Meta-style social commerce, X/Twitter-style creator payouts, messaging wallets. | Account takeover, payout velocity, beneficiary bursts, cross-border anomalies. |
 | `crypto_exchange` | Crypto exchanges, fiat on-ramps, stablecoin wallet apps. | Cross-border anomalies, mule behavior, KYC abuse, transaction spikes. |
 | `marketplace_trust` | Ecommerce, delivery, gig, and classifieds marketplaces. | Chargebacks, transaction spikes, account takeover, velocity abuse. |
-| `bank_aml` | Retail banks, business banks, AML monitoring vendors. | Mule accounts, beneficiary bursts, cross-border movement, transaction spikes. |
+| `bank_aml` | Retail banks, business banks, AML monitoring vendors. | Mule accounts, beneficiary bursts, cross-border movement, transaction spikes, fraud rings. |
 | `bnpl_credit` | BNPL checkout, consumer lending, merchant financing. | Chargeback risk, transaction spikes, KYC abuse, account takeover. |
 
 ### AI Scenario Generation
@@ -188,10 +189,10 @@ Available suites:
 
 | Suite | Built For | UK / Global Usefulness |
 | --- | --- | --- |
-| `uk_fincrime` | UK APP fraud, mule-account, takeover, and cashout control testing. | Helps banks and fintechs test UK financial crime controls with synthetic-only data. |
+| `uk_fincrime` | UK APP fraud, mule-account, takeover, cashout, and fraud-ring control testing. | Helps banks and fintechs test UK financial crime controls with synthetic-only data. |
 | `open_banking_risk` | Consent, payment-initiation, account, and transaction-risk workflows. | Supports UK open banking and PSD2-style risk QA without exposing customer data. |
 | `cross_border_remittance` | UK-to-global remittance corridors such as `GB-NG`, `GB-GH`, `GB-KE`, `GB-IN`, and `GB-PK`. | Helps money transfer and fintech teams test cross-border AML and fraud controls. |
-| `aml_sanctions` | AML monitoring and synthetic sanctions-screening style fixtures. | Gives regtech teams safe data for false-positive, high-risk-flow, structuring, and layering tests. |
+| `aml_sanctions` | AML monitoring and synthetic sanctions-screening style fixtures. | Gives regtech teams safe data for false-positive, high-risk-flow, structuring, layering, and networked-fraud tests. |
 | `global_fraud_mix` | Broad fintech fraud and model-evaluation datasets. | Useful for international fintech teams building from or into the UK market. |
 
 Each benchmark writes the normal dataset files plus:
@@ -308,6 +309,8 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
     "account_takeover": 12,
     "velocity_abuse": 10
   },
+  "fraud_networks_generated": 3,
+  "networked_fraud_users_generated": 18,
   "use_case": "consumer_fintech",
   "platform": "fintech",
   "country_profile": "NG",
@@ -318,7 +321,7 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 ## Generated User Fields
 
-`user_id`, `country`, `identity_type`, `kyc_provider`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`.
+`user_id`, `country`, `identity_type`, `kyc_provider`, `account_age_days`, `kyc_status`, `failed_kyc_attempts`, `device_count`, `ip_country`, `declared_country`, `failed_login_attempts_24h`, `beneficiary_count_24h`, `chargeback_count`, `is_fraud`, `fraud_pattern`, `risk_label`, `risk_score`, `recommended_action`, `reason_codes`, `network_id`.
 
 ## Generated Account Fields
 
@@ -326,11 +329,11 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 ## Generated Device Fields
 
-`device_id`, `user_id`, `device_type`, `os`, `first_seen_at`, `last_seen_at`, `country`, `is_trusted`, `is_fraud_linked`.
+`device_id`, `user_id`, `device_type`, `os`, `first_seen_at`, `last_seen_at`, `country`, `is_trusted`, `is_fraud_linked`, `network_id`.
 
 ## Generated Beneficiary Fields
 
-`beneficiary_id`, `user_id`, `beneficiary_type`, `beneficiary_country`, `bank_code`, `added_at`, `is_recent`, `is_fraud_linked`.
+`beneficiary_id`, `user_id`, `beneficiary_type`, `beneficiary_country`, `bank_code`, `added_at`, `is_recent`, `is_fraud_linked`, `network_id`.
 
 ## Generated Merchant Fields
 
@@ -338,7 +341,7 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 ## Generated Transaction Fields
 
-`transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `payment_rail`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`.
+`transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `payment_rail`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`, `network_id`.
 
 ## Risk Scoring
 
@@ -362,6 +365,11 @@ Generated users and transactions include a `risk_score` from `0` to `100` and a 
 | `transaction_spike` | Transaction amount far above baseline. |
 | `cross_border_anomaly` | Declared country differs from IP or beneficiary country. |
 | `beneficiary_burst` | Many new beneficiaries added within 24 hours. |
+| `fraud_ring` | Coordinated accounts linked by a shared `network_id`, shared devices, shared beneficiaries, and clustered cashout behavior. |
+
+### Fraud Rings and Networked Fraud
+
+When `fraud_ring` is selected, the generator groups eligible fraud users into synthetic networks. Network members receive the same `network_id`, and suspicious transactions can reference shared ring devices and beneficiaries. The output still uses the normal `users`, `devices`, `beneficiaries`, and `transactions` files, so graph systems can connect users through repeated `network_id`, `device_id`, and `beneficiary_id` values without requiring a separate graph export.
 
 ## Example Output
 
@@ -387,7 +395,8 @@ User:
   "risk_label": "critical",
   "risk_score": 100,
   "recommended_action": "block",
-  "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
+  "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"],
+  "network_id": null
 }
 ```
 
@@ -413,7 +422,8 @@ Transaction:
   "fraud_pattern": "mule_account",
   "risk_score": 96,
   "recommended_action": "block",
-  "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
+  "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"],
+  "network_id": null
 }
 ```
 
