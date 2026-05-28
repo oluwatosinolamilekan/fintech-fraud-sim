@@ -50,7 +50,8 @@ const TRANSACTION_EXCLUDED_FIELDS = [
   'fraud_pattern',
   'risk_score',
   'recommended_action',
-  'reason_codes'
+  'reason_codes',
+  'network_id'
 ];
 
 const USER_EXCLUDED_FIELDS = [
@@ -60,7 +61,8 @@ const USER_EXCLUDED_FIELDS = [
   'risk_label',
   'risk_score',
   'recommended_action',
-  'reason_codes'
+  'reason_codes',
+  'network_id'
 ];
 
 export async function exportMlTrainingDataset(options: MlExportOptions): Promise<MlExportResult> {

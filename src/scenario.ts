@@ -130,7 +130,7 @@ function buildTemplate(prompt: string): ScenarioTemplate {
       platform: 'fintech',
       useCase: 'bank_aml',
       paymentRails: ['bank_transfer', 'swift', 'cashout', 'wallet_transfer'],
-      patterns: ['mule_account', 'beneficiary_burst', 'cross_border_anomaly', 'transaction_spike', 'kyc_abuse'],
+      patterns: ['mule_account', 'beneficiary_burst', 'cross_border_anomaly', 'transaction_spike', 'kyc_abuse', 'fraud_ring'],
       transactionsMin: 3,
       transactionsMax: 32
     };
@@ -187,6 +187,7 @@ function inferPatterns(prompt: string): FraudPattern[] {
   if (hasAny(prompt, ['spike', 'large transaction', 'high value', 'unusual amount'])) patterns.add('transaction_spike');
   if (hasAny(prompt, ['cross-border', 'cross border', 'corridor', 'foreign beneficiary', 'country mismatch', 'remittance', 'uk-nigeria', 'gb-ng', 'uk-ghana', 'gb-gh', 'uk-kenya', 'gb-ke'])) patterns.add('cross_border_anomaly');
   if (hasAny(prompt, ['beneficiary', 'new payee', 'payee cluster', 'many payees'])) patterns.add('beneficiary_burst');
+  if (hasAny(prompt, ['fraud ring', 'ring', 'networked fraud', 'linked accounts', 'shared device', 'shared beneficiary', 'collusion', 'coordinated'])) patterns.add('fraud_ring');
   return [...patterns];
 }
 

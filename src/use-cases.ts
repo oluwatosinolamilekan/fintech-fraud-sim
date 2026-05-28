@@ -92,7 +92,7 @@ export const USE_CASE_PRESETS: Record<UseCaseName, UseCasePreset> = {
       fraudRate: 0.1,
       country: 'NG',
       currency: 'NGN',
-      patterns: ['mule_account', 'beneficiary_burst', 'cross_border_anomaly', 'transaction_spike'],
+      patterns: ['mule_account', 'beneficiary_burst', 'cross_border_anomaly', 'transaction_spike', 'fraud_ring'],
       transactionsMin: 3,
       transactionsMax: 30
     }

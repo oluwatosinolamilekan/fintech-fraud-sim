@@ -34,10 +34,11 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'risk_label',
     'risk_score',
     'recommended_action',
-    'reason_codes'
+    'reason_codes',
+    'network_id'
   ],
   accounts: ['account_id', 'user_id', 'account_type', 'currency', 'balance', 'status', 'opened_at', 'daily_limit', 'is_fraud_linked'],
-  devices: ['device_id', 'user_id', 'device_type', 'os', 'first_seen_at', 'last_seen_at', 'country', 'is_trusted', 'is_fraud_linked'],
+  devices: ['device_id', 'user_id', 'device_type', 'os', 'first_seen_at', 'last_seen_at', 'country', 'is_trusted', 'is_fraud_linked', 'network_id'],
   beneficiaries: [
     'beneficiary_id',
     'user_id',
@@ -46,7 +47,8 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'bank_code',
     'added_at',
     'is_recent',
-    'is_fraud_linked'
+    'is_fraud_linked',
+    'network_id'
   ],
   merchants: ['merchant_id', 'merchant_name', 'category', 'country', 'risk_tier', 'is_high_risk'],
   transactions: [
@@ -68,7 +70,8 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'fraud_pattern',
     'risk_score',
     'recommended_action',
-    'reason_codes'
+    'reason_codes',
+    'network_id'
   ],
   summary: [
     'total_users',
@@ -81,6 +84,8 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'fraud_users_generated',
     'suspicious_transactions_generated',
     'fraud_pattern_breakdown',
+    'fraud_networks_generated',
+    'networked_fraud_users_generated',
     'use_case',
     'platform',
     'country_profile',

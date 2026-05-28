@@ -59,8 +59,37 @@ describe('generateDataset', () => {
     const dataset = generateDataset({ ...baseOptions, fraudRate: 0 });
 
     assert.equal(dataset.summary.fraud_users_generated, 0);
+    assert.equal(dataset.summary.fraud_networks_generated, 0);
+    assert.equal(dataset.summary.networked_fraud_users_generated, 0);
     assert.equal(dataset.users.every((user) => !user.is_fraud), true);
     assert.equal(dataset.transactions.every((transaction) => !transaction.is_suspicious), true);
+  });
+
+  it('generates fraud rings with shared network entities', () => {
+    const dataset = generateDataset({
+      ...baseOptions,
+      users: 30,
+      fraudRate: 0.4,
+      patterns: ['fraud_ring'],
+      seed: 'fraud-ring-test',
+      transactionsMin: 1,
+      transactionsMax: 4
+    });
+
+    const networkedUsers = dataset.users.filter((user) => user.network_id);
+    const networkedDevices = dataset.devices.filter((device) => device.network_id);
+    const networkedBeneficiaries = dataset.beneficiaries.filter((beneficiary) => beneficiary.network_id);
+    const networkedTransactions = dataset.transactions.filter((transaction) => transaction.network_id);
+    const networkIds = new Set(networkedUsers.map((user) => user.network_id));
+
+    assert.ok(dataset.summary.fraud_networks_generated > 0);
+    assert.equal(dataset.summary.networked_fraud_users_generated, networkedUsers.length);
+    assert.ok(networkedUsers.length >= 2);
+    assert.ok(networkedDevices.length > 0);
+    assert.ok(networkedBeneficiaries.length > 0);
+    assert.ok(networkedTransactions.length > 0);
+    assert.equal([...networkIds].every((networkId) => networkedUsers.filter((user) => user.network_id === networkId).length >= 2), true);
+    assert.equal(networkedTransactions.every((transaction) => networkIds.has(transaction.network_id)), true);
   });
 
   it('validates fraud rate range', () => {

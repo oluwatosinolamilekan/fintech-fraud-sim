@@ -11,7 +11,8 @@
     "bank_code",
     "added_at",
     "is_recent",
-    "is_fraud_linked"
+    "is_fraud_linked",
+    "network_id"
   ],
   "properties": {
     "beneficiary_id": {
@@ -46,6 +47,12 @@
     },
     "is_fraud_linked": {
       "type": "boolean"
+    },
+    "network_id": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   }
 }

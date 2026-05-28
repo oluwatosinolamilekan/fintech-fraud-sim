@@ -90,13 +90,13 @@ export const BENCHMARK_SUITES: Record<BenchmarkSuiteName, BenchmarkSuite> = {
       'Helps fintech teams test controls without exposing real customer data.'
     ],
     corridors: ['GB-NG', 'GB-GH', 'GB-KE', 'GB-IN', 'GB-PK', 'GB-EU'],
-    typologies: ['invoice_redirection', 'impersonation_scam', 'investment_scam', 'purchase_scam', 'money_mule_cashout'],
+    typologies: ['invoice_redirection', 'impersonation_scam', 'investment_scam', 'purchase_scam', 'money_mule_cashout', 'fraud_ring'],
     defaults: {
       users: 6000,
       fraudRate: 0.11,
       country: 'GB',
       currency: 'GBP',
-      patterns: ['mule_account', 'account_takeover', 'beneficiary_burst', 'velocity_abuse', 'transaction_spike'],
+      patterns: ['mule_account', 'account_takeover', 'beneficiary_burst', 'velocity_abuse', 'transaction_spike', 'fraud_ring'],
       transactionsMin: 2,
       transactionsMax: 28
     }
@@ -153,13 +153,13 @@ export const BENCHMARK_SUITES: Record<BenchmarkSuiteName, BenchmarkSuite> = {
       'Helps reduce compliance model defects before production release.'
     ],
     corridors: ['GB-AE', 'GB-US', 'GB-EU', 'GB-NG', 'GB-IN'],
-    typologies: ['watchlist_false_positive', 'pep_like_profile', 'structuring', 'layering', 'rapid_in_out'],
+    typologies: ['watchlist_false_positive', 'pep_like_profile', 'structuring', 'layering', 'rapid_in_out', 'networked_fraud'],
     defaults: {
       users: 8000,
       fraudRate: 0.12,
       country: 'GB',
       currency: 'GBP',
-      patterns: ['kyc_abuse', 'cross_border_anomaly', 'mule_account', 'transaction_spike', 'beneficiary_burst'],
+      patterns: ['kyc_abuse', 'cross_border_anomaly', 'mule_account', 'transaction_spike', 'beneficiary_burst', 'fraud_ring'],
       transactionsMin: 3,
       transactionsMax: 36
     }
@@ -174,13 +174,13 @@ export const BENCHMARK_SUITES: Record<BenchmarkSuiteName, BenchmarkSuite> = {
       'Creates repeatable synthetic data for AI model evaluation and release gates.'
     ],
     corridors: ['GB-NG', 'GB-GH', 'GB-KE', 'GB-US', 'GB-EU', 'US-IN'],
-    typologies: ['mule_account', 'account_takeover', 'velocity_abuse', 'chargeback_risk', 'cross_border_anomaly'],
+    typologies: ['mule_account', 'account_takeover', 'velocity_abuse', 'chargeback_risk', 'cross_border_anomaly', 'fraud_ring'],
     defaults: {
       users: 10000,
       fraudRate: 0.1,
       country: 'GB',
       currency: 'GBP',
-      patterns: ['mule_account', 'account_takeover', 'velocity_abuse', 'kyc_abuse', 'chargeback_risk', 'cross_border_anomaly'],
+      patterns: ['mule_account', 'account_takeover', 'velocity_abuse', 'kyc_abuse', 'chargeback_risk', 'cross_border_anomaly', 'fraud_ring'],
       transactionsMin: 2,
       transactionsMax: 35
     }

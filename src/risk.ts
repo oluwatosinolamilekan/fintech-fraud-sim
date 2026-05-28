@@ -13,6 +13,7 @@ export function scoreUserRisk(user: Omit<SyntheticUser, 'risk_score' | 'recommen
   if (user.failed_login_attempts_24h >= 8) score += 12;
   if (user.beneficiary_count_24h >= 8) score += 12;
   if (user.chargeback_count >= 2) score += 10;
+  if (user.network_id) score += 10;
   score += Math.min(user.reason_codes.length * 4, 16);
 
   return clampRiskScore(score);
@@ -32,6 +33,7 @@ export function scoreTransactionRisk(
   if (user && transaction.ip_country !== user.country) score += 8;
   if (user && transaction.beneficiary_country !== user.country) score += 8;
   if (transaction.channel === 'api') score += 4;
+  if (transaction.network_id) score += 10;
   score += Math.min(transaction.reason_codes.length * 5, 20);
 
   return clampRiskScore(score);

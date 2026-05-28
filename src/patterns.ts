@@ -24,7 +24,8 @@ export const PATTERN_DEFINITIONS: Record<FraudPattern, string> = {
   chargeback_risk: 'Prior chargebacks combined with high-value transactions.',
   transaction_spike: 'Transaction amount far above the user baseline.',
   cross_border_anomaly: 'Declared country differs from IP or beneficiary country.',
-  beneficiary_burst: 'Many new beneficiaries added in the last 24 hours.'
+  beneficiary_burst: 'Many new beneficiaries added in the last 24 hours.',
+  fraud_ring: 'Coordinated users linked by shared devices, beneficiaries, and clustered cashout behavior.'
 };
 
 export const PATTERN_REASON_CODES: Record<FraudPattern, string[]> = {
@@ -35,7 +36,8 @@ export const PATTERN_REASON_CODES: Record<FraudPattern, string[]> = {
   chargeback_risk: ['PRIOR_CHARGEBACKS', 'HIGH_VALUE_TRANSACTION', 'REVERSAL_HISTORY'],
   transaction_spike: ['AMOUNT_ABOVE_BASELINE', 'UNUSUAL_TRANSACTION_SPIKE'],
   cross_border_anomaly: ['DECLARED_COUNTRY_MISMATCH', 'CROSS_BORDER_BENEFICIARY'],
-  beneficiary_burst: ['BENEFICIARY_BURST_24H', 'NEW_PAYEE_CLUSTER']
+  beneficiary_burst: ['BENEFICIARY_BURST_24H', 'NEW_PAYEE_CLUSTER'],
+  fraud_ring: ['SHARED_DEVICE_CLUSTER', 'SHARED_BENEFICIARY_CLUSTER', 'COORDINATED_FUNDS_MOVEMENT']
 };
 
 export function applyFraudPattern(user: SyntheticUser, pattern: FraudPattern, rng: SimRandom): SyntheticUser {
@@ -109,6 +111,15 @@ export function applyFraudPattern(user: SyntheticUser, pattern: FraudPattern, rn
         beneficiary_count_24h: rng.int(12, 45),
         account_age_days: rng.int(7, 120)
       };
+    case 'fraud_ring':
+      return {
+        ...patched,
+        account_age_days: rng.int(1, 90),
+        kyc_status: rng.pick(['pending', 'verified']),
+        beneficiary_count_24h: rng.int(6, 24),
+        device_count: rng.int(2, 6),
+        failed_login_attempts_24h: rng.int(2, 12)
+      };
   }
 }
 
@@ -125,6 +136,8 @@ export function transactionCountForUser(user: SyntheticUser, min: number, max: n
       return Math.max(max, rng.int(10, 35));
     case 'beneficiary_burst':
       return Math.max(max, rng.int(12, 40));
+    case 'fraud_ring':
+      return Math.max(max, rng.int(18, 50));
     default:
       return rng.int(Math.max(min, 3), Math.max(max, 8));
   }
@@ -143,6 +156,8 @@ export function makeTransactionForUser(
     merchantIds: string[];
     channels?: Channel[];
     paymentRails?: PaymentRail[];
+    networkDeviceIds?: string[];
+    networkBeneficiaries?: SyntheticBeneficiary[];
   }
 ): SyntheticTransaction {
   const pattern = user.fraud_pattern;
@@ -163,6 +178,9 @@ export function makeTransactionForUser(
     ? rng.int(0, 180)
     : rng.int(0, 60 * 24 * 60);
 
+  const networkDeviceIds = relations.networkDeviceIds ?? [];
+  const networkBeneficiaries = relations.networkBeneficiaries ?? [];
+  const useNetworkEntity = isSuspicious && pattern === 'fraud_ring';
   const transactionWithoutRisk: Omit<SyntheticTransaction, 'risk_score' | 'recommended_action'> = {
     transaction_id: syntheticId('txn', rng),
     user_id: user.user_id,
@@ -172,17 +190,22 @@ export function makeTransactionForUser(
     currency,
     payment_rail: paymentRailForPattern(pattern, isSuspicious, relations.paymentRails ?? PAYMENT_RAILS, rng),
     channel: channelForPattern(pattern, isSuspicious, relations.channels ?? CHANNELS, rng),
-    beneficiary_id: beneficiaryForCountry(relations.beneficiaries, beneficiaryCountry, rng).beneficiary_id,
+    beneficiary_id: useNetworkEntity && networkBeneficiaries.length > 0
+      ? beneficiaryForCountry(networkBeneficiaries, beneficiaryCountry, rng).beneficiary_id
+      : beneficiaryForCountry(relations.beneficiaries, beneficiaryCountry, rng).beneficiary_id,
     beneficiary_country: beneficiaryCountry,
     merchant_id: rng.pick(relations.merchantIds),
-    device_id: isSuspicious && pattern === 'account_takeover'
+    device_id: useNetworkEntity && networkDeviceIds.length > 0
+      ? rng.pick(networkDeviceIds)
+      : isSuspicious && pattern === 'account_takeover'
       ? relations.deviceIds[relations.deviceIds.length - 1]
       : rng.pick(relations.deviceIds),
     ip_country: ipCountry,
     status: isSuspicious ? rng.pick(HIGH_RISK_STATUSES) : rng.pick(['completed', 'completed', 'pending', 'failed']),
     is_suspicious: isSuspicious,
     fraud_pattern: isSuspicious && user.is_fraud ? pattern : 'none',
-    reason_codes: reasonCodes
+    reason_codes: reasonCodes,
+    network_id: useNetworkEntity ? user.network_id : null
   };
   const riskScore = scoreTransactionRisk(transactionWithoutRisk, user);
 
@@ -222,6 +245,8 @@ function suspiciousTransactionQuota(pattern: SyntheticUser['fraud_pattern'], rng
       return rng.int(6, 18);
     case 'account_takeover':
       return rng.int(5, 15);
+    case 'fraud_ring':
+      return rng.int(8, 22);
     default:
       return rng.int(1, 5);
   }
@@ -244,6 +269,8 @@ function amountForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious:
       return currencyMinorUnits(rng.float(900000, 6000000));
     case 'mule_account':
       return currencyMinorUnits(rng.float(200000, 2500000));
+    case 'fraud_ring':
+      return currencyMinorUnits(rng.float(180000, 2200000));
     default:
       return currencyMinorUnits(rng.float(100000, 1800000));
   }
@@ -263,6 +290,9 @@ function paymentRailForPattern(
   }
   if (pattern === 'beneficiary_burst' || pattern === 'mule_account') {
     return pickPreferredRail(['bank_transfer', 'wallet_transfer', 'mobile_money', 'cashout'], rails, rng);
+  }
+  if (pattern === 'fraud_ring') {
+    return pickPreferredRail(['bank_transfer', 'wallet_transfer', 'mobile_money', 'cashout', 'crypto_wallet'], rails, rng);
   }
   if (pattern === 'chargeback_risk') {
     return pickPreferredRail(['card', 'merchant_payment'], rails, rng);
@@ -284,6 +314,9 @@ function channelForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious
   }
   if (pattern === 'account_takeover') {
     return pickPreferredChannel(['web', 'mobile_app'], channels, rng);
+  }
+  if (pattern === 'fraud_ring') {
+    return pickPreferredChannel(['api', 'mobile_app', 'web'], channels, rng);
   }
   return rng.pick(channels);
 }

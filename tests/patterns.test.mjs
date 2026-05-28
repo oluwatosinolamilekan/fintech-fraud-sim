@@ -20,7 +20,8 @@ const baseUser = {
   is_fraud: false,
   fraud_pattern: 'none',
   risk_label: 'low',
-  reason_codes: []
+  reason_codes: [],
+  network_id: null
 };
 
 describe('fraud patterns', () => {
@@ -46,5 +47,14 @@ describe('fraud patterns', () => {
 
   it('supports mule as an alias for mule_account', () => {
     assert.deepEqual(parsePatterns('mule,velocity_abuse'), ['mule_account', 'velocity_abuse']);
+  });
+
+  it('applies fraud ring user-level signals', () => {
+    const user = applyFraudPattern(baseUser, 'fraud_ring', new SimRandom('ring'));
+
+    assert.equal(user.is_fraud, true);
+    assert.equal(user.fraud_pattern, 'fraud_ring');
+    assert.ok(user.beneficiary_count_24h >= 6);
+    assert.deepEqual(user.reason_codes, PATTERN_REASON_CODES.fraud_ring);
   });
 });

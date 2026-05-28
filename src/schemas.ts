@@ -29,7 +29,8 @@ export const USER_SCHEMA: JsonSchema = {
     'risk_label',
     'risk_score',
     'recommended_action',
-    'reason_codes'
+    'reason_codes',
+    'network_id'
   ],
   properties: {
     user_id: { type: 'string' },
@@ -58,13 +59,15 @@ export const USER_SCHEMA: JsonSchema = {
         'chargeback_risk',
         'transaction_spike',
         'cross_border_anomaly',
-        'beneficiary_burst'
+        'beneficiary_burst',
+        'fraud_ring'
       ]
     },
     risk_label: { enum: ['low', 'medium', 'high', 'critical'] },
     risk_score: { type: 'integer', minimum: 0, maximum: 100 },
     recommended_action: { enum: ['allow', 'review', 'block'] },
-    reason_codes: { type: 'array', items: { type: 'string' } }
+    reason_codes: { type: 'array', items: { type: 'string' } },
+    network_id: { type: ['string', 'null'] }
   }
 };
 
@@ -92,7 +95,8 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
     'fraud_pattern',
     'risk_score',
     'recommended_action',
-    'reason_codes'
+    'reason_codes',
+    'network_id'
   ],
   properties: {
     transaction_id: { type: 'string' },
@@ -134,12 +138,14 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
         'chargeback_risk',
         'transaction_spike',
         'cross_border_anomaly',
-        'beneficiary_burst'
+        'beneficiary_burst',
+        'fraud_ring'
       ]
     },
     risk_score: { type: 'integer', minimum: 0, maximum: 100 },
     recommended_action: { enum: ['allow', 'review', 'block'] },
-    reason_codes: { type: 'array', items: { type: 'string' } }
+    reason_codes: { type: 'array', items: { type: 'string' } },
+    network_id: { type: ['string', 'null'] }
   }
 };
 
@@ -167,7 +173,7 @@ export const DEVICE_SCHEMA: JsonSchema = {
   title: 'fintech-fraud-sim device',
   type: 'object',
   additionalProperties: false,
-  required: ['device_id', 'user_id', 'device_type', 'os', 'first_seen_at', 'last_seen_at', 'country', 'is_trusted', 'is_fraud_linked'],
+  required: ['device_id', 'user_id', 'device_type', 'os', 'first_seen_at', 'last_seen_at', 'country', 'is_trusted', 'is_fraud_linked', 'network_id'],
   properties: {
     device_id: { type: 'string' },
     user_id: { type: 'string' },
@@ -177,7 +183,8 @@ export const DEVICE_SCHEMA: JsonSchema = {
     last_seen_at: { type: 'string', format: 'date-time' },
     country: { type: 'string', minLength: 2, maxLength: 2 },
     is_trusted: { type: 'boolean' },
-    is_fraud_linked: { type: 'boolean' }
+    is_fraud_linked: { type: 'boolean' },
+    network_id: { type: ['string', 'null'] }
   }
 };
 
@@ -186,7 +193,7 @@ export const BENEFICIARY_SCHEMA: JsonSchema = {
   title: 'fintech-fraud-sim beneficiary',
   type: 'object',
   additionalProperties: false,
-  required: ['beneficiary_id', 'user_id', 'beneficiary_type', 'beneficiary_country', 'bank_code', 'added_at', 'is_recent', 'is_fraud_linked'],
+  required: ['beneficiary_id', 'user_id', 'beneficiary_type', 'beneficiary_country', 'bank_code', 'added_at', 'is_recent', 'is_fraud_linked', 'network_id'],
   properties: {
     beneficiary_id: { type: 'string' },
     user_id: { type: 'string' },
@@ -195,7 +202,8 @@ export const BENEFICIARY_SCHEMA: JsonSchema = {
     bank_code: { type: 'string' },
     added_at: { type: 'string', format: 'date-time' },
     is_recent: { type: 'boolean' },
-    is_fraud_linked: { type: 'boolean' }
+    is_fraud_linked: { type: 'boolean' },
+    network_id: { type: ['string', 'null'] }
   }
 };
 
@@ -244,6 +252,8 @@ export const SUMMARY_SCHEMA: JsonSchema = {
     'fraud_users_generated',
     'suspicious_transactions_generated',
     'fraud_pattern_breakdown',
+    'fraud_networks_generated',
+    'networked_fraud_users_generated',
     'use_case',
     'platform',
     'country_profile',
@@ -261,6 +271,8 @@ export const SUMMARY_SCHEMA: JsonSchema = {
     fraud_users_generated: { type: 'integer', minimum: 0 },
     suspicious_transactions_generated: { type: 'integer', minimum: 0 },
     fraud_pattern_breakdown: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+    fraud_networks_generated: { type: 'integer', minimum: 0 },
+    networked_fraud_users_generated: { type: 'integer', minimum: 0 },
     use_case: {
       enum: [
         null,
