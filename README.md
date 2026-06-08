@@ -32,6 +32,10 @@ npx fintech-fraud-sim ml-export --input ./uk-fincrime-benchmark --target transac
 npx fintech-fraud-sim ml-export --input ./data --target users --split 0.75 --out ./user-risk-training
 npx fintech-fraud-sim evaluate --truth ./uk-fincrime-benchmark/transactions.json --predictions ./model-predictions.csv --pretty
 npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime --format html
+npx fintech-fraud-sim dashboard --input ./uk-fincrime-benchmark --out ./uk-fincrime-dashboard.html
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format csv --out ./fraud-graph
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format cypher --out ./fraud-graph.cypher
+npx fintech-fraud-sim rules-test --input ./uk-fincrime-benchmark --rules ./rules.json --pretty
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
 npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 ```
@@ -261,6 +265,66 @@ npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime
 ```
 
 This is useful for demos, technical articles, portfolio evidence, and explaining how synthetic fraud data can support safer fintech innovation, privacy-preserving AI development, and UK/global financial crime control testing.
+
+### `dashboard`
+
+Build a self-contained interactive HTML dashboard from generated JSON files:
+
+```bash
+npx fintech-fraud-sim dashboard --input ./uk-fincrime-benchmark --out ./uk-fincrime-dashboard.html
+```
+
+The dashboard includes KPI tiles, fraud-pattern breakdowns, top reason codes, payment rails, corridors, searchable transaction exploration, action filters, suspicious-label filters, pattern filters, and a fraud-network table. It does not require a server.
+
+### `graph-export`
+
+Export generated data as a fraud network graph:
+
+```bash
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format json --out ./fraud-graph.json
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format csv --out ./fraud-graph
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format cypher --out ./fraud-graph.cypher
+npx fintech-fraud-sim graph-export --input ./ring-fixtures --format graphml --out ./fraud-graph.graphml
+```
+
+`json`, `cypher`, and `graphml` write a single file. `csv` writes `nodes.csv`, `edges.csv`, and `graph_summary.json` to the output directory. Graph nodes include users, accounts, devices, beneficiaries, merchants, transactions, and fraud networks. Edges connect ownership, device use, beneficiary additions, transaction initiation, payment targets, merchant activity, and network links.
+
+### `rules-test`
+
+Run a JSON rule pack against generated transactions:
+
+```bash
+npx fintech-fraud-sim rules-test --input ./uk-fincrime-benchmark --rules ./rules.json --out ./rule-results.json --pretty
+```
+
+Example rule pack:
+
+```json
+{
+  "name": "starter-fraud-rules",
+  "rules": [
+    {
+      "id": "high_risk_score",
+      "action": "block",
+      "conditions": [
+        { "field": "risk_score", "operator": "gte", "value": 75 }
+      ]
+    },
+    {
+      "id": "cross_border_high_value",
+      "action": "review",
+      "conditions": [
+        { "field": "amount", "operator": "gte", "value": 500000 },
+        { "field": "country_mismatch", "operator": "eq", "value": true }
+      ]
+    }
+  ]
+}
+```
+
+Supported operators are `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, and `exists`. Rule facts include transaction fields plus useful derived/user fields such as `country_mismatch`, `corridor`, `reason_code_count`, `user_kyc_status`, `user_account_age_days`, `user_device_count`, `user_failed_login_attempts_24h`, `user_beneficiary_count_24h`, and `user_ip_country_mismatch`.
+
+The output includes matched transactions, rule/action breakdowns, precision, recall, F1 score, false positives, and false negatives against the generated `is_suspicious` labels.
 
 ## Output Files
 

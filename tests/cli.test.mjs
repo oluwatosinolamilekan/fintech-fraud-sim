@@ -228,6 +228,82 @@ describe('CLI', () => {
     }
   });
 
+  it('builds dashboards, graph exports, and rule simulations from generated output', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-analysis-cli-'));
+
+    try {
+      await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'generate',
+        '--users',
+        '35',
+        '--fraud-rate',
+        '0.25',
+        '--patterns',
+        'fraud_ring,account_takeover,beneficiary_burst',
+        '--format',
+        'json',
+        '--out',
+        out,
+        '--seed',
+        'cli-analysis-features'
+      ]);
+
+      const dashboard = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'dashboard',
+        '--input',
+        out,
+        '--out',
+        join(out, 'dashboard.html')
+      ]);
+      assert.match(dashboard.stdout, /interactive fraud dashboard/);
+      assert.match(await readFile(join(out, 'dashboard.html'), 'utf8'), /Transaction explorer/);
+
+      const graph = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'graph-export',
+        '--input',
+        out,
+        '--format',
+        'csv',
+        '--out',
+        join(out, 'graph')
+      ]);
+      assert.match(graph.stdout, /CSV fraud graph/);
+      assert.match(await readFile(join(out, 'graph', 'nodes.csv'), 'utf8'), /FraudNetwork|Transaction/);
+
+      const rulesPath = join(out, 'rules.json');
+      await writeFile(
+        rulesPath,
+        JSON.stringify({
+          name: 'cli-rules',
+          rules: [
+            {
+              id: 'high_risk_score',
+              action: 'block',
+              conditions: [{ field: 'risk_score', operator: 'gte', value: 75 }]
+            }
+          ]
+        })
+      );
+      const rules = await execFileAsync(process.execPath, [
+        'dist/cli.js',
+        'rules-test',
+        '--input',
+        out,
+        '--rules',
+        rulesPath,
+        '--pretty'
+      ]);
+      const parsedRules = JSON.parse(rules.stdout);
+      assert.equal(parsedRules.rule_pack, 'cli-rules');
+      assert.ok(parsedRules.matched_transactions > 0);
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  });
+
   it('exports generated data for ML training', async () => {
     const generated = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-ml-generated-'));
     const out = await mkdtemp(join(tmpdir(), 'fintech-fraud-sim-ml-cli-'));
