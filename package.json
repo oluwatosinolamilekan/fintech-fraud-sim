@@ -26,8 +26,7 @@
     "fintech-fraud-sim": "dist/cli.js"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "sideEffects": false,
   "files": [
@@ -42,7 +41,7 @@
     "test": "node --test tests/*.test.mjs",
     "dev": "tsc && node dist/cli.js",
     "publish:ci": "npm run build && node --test tests/*.test.mjs && npm publish --ignore-scripts --provenance --access public",
-    "publish:local": "npm run build && node --test tests/*.test.mjs && npm publish --ignore-scripts --access public",
+    "publish:local": "npm run build && node --test tests/*.test.mjs && npm publish --ignore-scripts --access public --provenance=false",
     "prepublishOnly": "tsc && node --test tests/*.test.mjs"
   },
   "keywords": [
@@ -64,6 +63,6 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=18.18"
+    "node": ">=22"
   }
 }

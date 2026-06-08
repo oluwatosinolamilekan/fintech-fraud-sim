@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import {
   BENCHMARK_SUITE_NAMES,
@@ -29,9 +28,9 @@ import { parseUseCase, USE_CASE_PRESETS } from './use-cases.js';
 import { getPlatformPreset, listPlatformPresets, parsePlatform } from './platforms.js';
 import { getCountryProfile, listCountryProfiles } from './country-profiles.js';
 
+import packageJson from '../package.json' with { type: 'json' };
+
 const program = new Command();
-const require = createRequire(import.meta.url);
-const packageJson = require('../package.json') as { version: string };
 const USE_CASE_HELP = 'preset for consumer_fintech, social_payments, crypto_exchange, marketplace_trust, bank_aml, or bnpl_credit';
 const BENCHMARK_HELP = `benchmark suite for ${BENCHMARK_SUITE_NAMES.join(', ')}`;
 type GenerateConfig = Partial<Omit<GenerateOptions, 'patterns' | 'paymentRails'>> & {
