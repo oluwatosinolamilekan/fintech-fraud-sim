@@ -13,9 +13,12 @@ import {
   writeImpactReport,
   type ImpactReportFormat
 } from './benchmarks.js';
+import { writeDashboardFromDirectory } from './dashboard.js';
 import { generateDataset } from './generator.js';
+import { type GraphExportFormat, writeGraphExportFromDirectory } from './graph.js';
 import { inferScenarioFromPrompt } from './scenario.js';
 import { exportMlTrainingDataset, type MlExportTarget } from './ml-export.js';
+import { simulateRulesFromDirectory } from './rules.js';
 import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
@@ -33,6 +36,7 @@ import packageJson from '../package.json' with { type: 'json' };
 const program = new Command();
 const USE_CASE_HELP = 'preset for consumer_fintech, social_payments, crypto_exchange, marketplace_trust, bank_aml, or bnpl_credit';
 const BENCHMARK_HELP = `benchmark suite for ${BENCHMARK_SUITE_NAMES.join(', ')}`;
+const GRAPH_FORMAT_HELP = 'graph export format: json, csv, cypher, or graphml';
 type GenerateConfig = Partial<Omit<GenerateOptions, 'patterns' | 'paymentRails'>> & {
   fraud_rate?: number;
   use_case?: string;
@@ -318,6 +322,73 @@ program
   });
 
 program
+  .command('dashboard')
+  .description('Build an interactive HTML dashboard from a generated JSON output directory.')
+  .requiredOption('--input <path>', 'directory containing generated JSON dataset files')
+  .option('--out <path>', 'output HTML path', './fraud-dashboard.html')
+  .action(async (rawOptions) => {
+    try {
+      const out = resolve(rawOptions.out as string);
+      const summary = await writeDashboardFromDirectory(resolve(rawOptions.input as string), out);
+      console.log(`Wrote interactive fraud dashboard to ${out}`);
+      console.log(`Suspicious transactions: ${summary.suspicious_transactions}; suspicious amount: ${summary.suspicious_amount}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('graph-export')
+  .description('Export generated data as a fraud network graph.')
+  .requiredOption('--input <path>', 'directory containing generated JSON dataset files')
+  .option('--format <json|csv|cypher|graphml>', GRAPH_FORMAT_HELP, parseGraphExportFormatOption, 'json')
+  .option('--out <path>', 'output file path, or output directory when --format csv', './fraud-graph.json')
+  .action(async (rawOptions) => {
+    try {
+      const format = rawOptions.format as GraphExportFormat;
+      const out = resolve(rawOptions.out as string);
+      const graph = await writeGraphExportFromDirectory(resolve(rawOptions.input as string), out, format);
+      console.log(`Wrote ${format.toUpperCase()} fraud graph to ${out}`);
+      console.log(`Graph nodes: ${graph.summary.nodes}; edges: ${graph.summary.edges}; fraud networks: ${graph.summary.fraud_networks}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('rules-test')
+  .description('Run JSON fraud rules against generated transactions and report detection metrics.')
+  .requiredOption('--input <path>', 'directory containing generated JSON dataset files')
+  .requiredOption('--rules <path>', 'JSON rule pack file')
+  .option('--out <path>', 'optional path to write rule simulation JSON')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action(async (rawOptions) => {
+    try {
+      const summary = await simulateRulesFromDirectory(
+        resolve(rawOptions.input as string),
+        resolve(rawOptions.rules as string),
+        rawOptions.out ? resolve(rawOptions.out as string) : undefined,
+        Boolean(rawOptions.pretty)
+      );
+      const output = JSON.stringify(summary, null, rawOptions.pretty ? 2 : 0);
+      if (rawOptions.out) {
+        console.log(`Wrote rule simulation summary to ${resolve(rawOptions.out as string)}`);
+        console.log(`Matched transactions: ${summary.matched_transactions}; precision: ${summary.precision}; recall: ${summary.recall}`);
+        return;
+      }
+      console.log(output);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command('ml-export')
   .description('Export generated JSON data as ML-ready train/test feature and label CSV files.')
   .requiredOption('--input <path>', 'directory containing generated users.json and/or transactions.json')
@@ -518,6 +589,14 @@ function parseReportFormatOption(value: string): ImpactReportFormat {
   const format = value.toLowerCase();
   if (format !== 'json' && format !== 'html') {
     throw new InvalidArgumentError('--format must be one of: json, html');
+  }
+  return format;
+}
+
+function parseGraphExportFormatOption(value: string): GraphExportFormat {
+  const format = value.toLowerCase();
+  if (format !== 'json' && format !== 'csv' && format !== 'cypher' && format !== 'graphml') {
+    throw new InvalidArgumentError('--format must be one of: json, csv, cypher, graphml');
   }
   return format;
 }

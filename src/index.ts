@@ -3,6 +3,26 @@ export { inferScenarioFromPrompt } from './scenario.js';
 export type { ScenarioOverrides, ScenarioPlan } from './scenario.js';
 export { exportMlTrainingDataset } from './ml-export.js';
 export type { MlExportOptions, MlExportTarget, MlFeatureMetadata } from './ml-export.js';
+export { buildDashboardSummary, renderDashboardHtml, writeDashboardFromDirectory } from './dashboard.js';
+export type { DashboardSummary } from './dashboard.js';
+export {
+  buildFraudGraph,
+  toCypher,
+  toGraphEdgeCsv,
+  toGraphMl,
+  toGraphNodeCsv,
+  writeGraphExportFromDirectory
+} from './graph.js';
+export type { FraudGraph, GraphEdge, GraphExportFormat, GraphNode } from './graph.js';
+export { readRulePack, simulateRules, simulateRulesFromDirectory } from './rules.js';
+export type {
+  RuleCondition,
+  RuleMatch,
+  RuleOperator,
+  RulePack,
+  RuleSimulationSummary,
+  TransactionRule
+} from './rules.js';
 export {
   BENCHMARK_SUITE_NAMES,
   BENCHMARK_SUITES,
