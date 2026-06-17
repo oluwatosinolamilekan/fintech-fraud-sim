@@ -1,6 +1,6 @@
 {
   "name": "fintech-fraud-sim",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Synthetic fintech user and transaction fraud simulation CLI for testing fraud systems.",
   "type": "module",
   "author": "Lamidi Olamilekan",
