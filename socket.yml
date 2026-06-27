@@ -3,6 +3,10 @@ version: 2
 triggerPaths:
   - "package.json"
   - "package-lock.json"
+  - "SECURITY.md"
+  - "socket.yml"
+  - ".github/dependabot.yml"
+  - ".github/CODEOWNERS"
   - ".github/workflows/*.yml"
 
 githubApp:

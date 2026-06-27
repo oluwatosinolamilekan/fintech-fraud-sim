@@ -103,7 +103,15 @@
         "transaction_spike",
         "cross_border_anomaly",
         "beneficiary_burst",
-        "fraud_ring"
+        "fraud_ring",
+        "synthetic_identity",
+        "friendly_fraud",
+        "promo_abuse",
+        "merchant_collusion",
+        "refund_abuse",
+        "sanctions_false_positive",
+        "structuring",
+        "layering"
       ]
     },
     "risk_label": {
