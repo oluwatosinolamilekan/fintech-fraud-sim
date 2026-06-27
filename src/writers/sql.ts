@@ -9,6 +9,7 @@ const TABLES = [
   'beneficiaries',
   'merchants',
   'transactions',
+  'events',
   'summary'
 ] as const;
 
@@ -73,6 +74,20 @@ const TABLE_FIELDS: Record<TableName, string[]> = {
     'reason_codes',
     'network_id'
   ],
+  events: [
+    'event_id',
+    'event_type',
+    'timestamp',
+    'user_id',
+    'entity_id',
+    'entity_type',
+    'risk_score',
+    'recommended_action',
+    'is_suspicious',
+    'fraud_pattern',
+    'reason_codes',
+    'network_id'
+  ],
   summary: [
     'total_users',
     'total_accounts',
@@ -107,6 +122,7 @@ export function toSql(dataset: GeneratedDataset): string {
     beneficiaries: dataset.beneficiaries,
     merchants: dataset.merchants,
     transactions: dataset.transactions,
+    events: dataset.events,
     summary: [dataset.summary]
   };
 

@@ -12,6 +12,7 @@ export async function writeJson(dataset: GeneratedDataset, outDir: string, prett
     writeFile(join(outDir, 'beneficiaries.json'), JSON.stringify(dataset.beneficiaries, null, spaces)),
     writeFile(join(outDir, 'merchants.json'), JSON.stringify(dataset.merchants, null, spaces)),
     writeFile(join(outDir, 'transactions.json'), JSON.stringify(dataset.transactions, null, spaces)),
+    writeFile(join(outDir, 'events.json'), JSON.stringify(dataset.events, null, spaces)),
     writeFile(join(outDir, 'summary.json'), JSON.stringify(dataset.summary, null, 2))
   ]);
 }

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export type SchemaTarget = 'users' | 'accounts' | 'devices' | 'beneficiaries' | 'merchants' | 'transactions' | 'summary' | 'all';
+export type SchemaTarget = 'users' | 'accounts' | 'devices' | 'beneficiaries' | 'merchants' | 'transactions' | 'events' | 'summary' | 'all';
 
 type JsonSchema = Record<string, unknown>;
 
@@ -60,7 +60,15 @@ export const USER_SCHEMA: JsonSchema = {
         'transaction_spike',
         'cross_border_anomaly',
         'beneficiary_burst',
-        'fraud_ring'
+        'fraud_ring',
+        'synthetic_identity',
+        'friendly_fraud',
+        'promo_abuse',
+        'merchant_collusion',
+        'refund_abuse',
+        'sanctions_false_positive',
+        'structuring',
+        'layering'
       ]
     },
     risk_label: { enum: ['low', 'medium', 'high', 'critical'] },
@@ -139,7 +147,15 @@ export const TRANSACTION_SCHEMA: JsonSchema = {
         'transaction_spike',
         'cross_border_anomaly',
         'beneficiary_burst',
-        'fraud_ring'
+        'fraud_ring',
+        'synthetic_identity',
+        'friendly_fraud',
+        'promo_abuse',
+        'merchant_collusion',
+        'refund_abuse',
+        'sanctions_false_positive',
+        'structuring',
+        'layering'
       ]
     },
     risk_score: { type: 'integer', minimum: 0, maximum: 100 },
@@ -291,6 +307,41 @@ export const SUMMARY_SCHEMA: JsonSchema = {
   }
 };
 
+export const EVENT_SCHEMA: JsonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'fintech-fraud-sim event',
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'event_id',
+    'event_type',
+    'timestamp',
+    'user_id',
+    'entity_id',
+    'entity_type',
+    'risk_score',
+    'recommended_action',
+    'is_suspicious',
+    'fraud_pattern',
+    'reason_codes',
+    'network_id'
+  ],
+  properties: {
+    event_id: { type: 'string' },
+    event_type: { enum: ['user_created', 'kyc_attempt', 'device_seen', 'beneficiary_added', 'transaction_created', 'rule_decision'] },
+    timestamp: { type: 'string', format: 'date-time' },
+    user_id: { type: 'string' },
+    entity_id: { type: 'string' },
+    entity_type: { enum: ['user', 'kyc', 'device', 'beneficiary', 'transaction', 'decision'] },
+    risk_score: { type: ['integer', 'null'], minimum: 0, maximum: 100 },
+    recommended_action: { enum: ['allow', 'review', 'block', null] },
+    is_suspicious: { type: 'boolean' },
+    fraud_pattern: { type: 'string' },
+    reason_codes: { type: 'array', items: { type: 'string' } },
+    network_id: { type: ['string', 'null'] }
+  }
+};
+
 export function getSchemas(target: SchemaTarget): JsonSchema | Record<string, JsonSchema> {
   if (target === 'users') return USER_SCHEMA;
   if (target === 'accounts') return ACCOUNT_SCHEMA;
@@ -298,6 +349,7 @@ export function getSchemas(target: SchemaTarget): JsonSchema | Record<string, Js
   if (target === 'beneficiaries') return BENEFICIARY_SCHEMA;
   if (target === 'merchants') return MERCHANT_SCHEMA;
   if (target === 'transactions') return TRANSACTION_SCHEMA;
+  if (target === 'events') return EVENT_SCHEMA;
   if (target === 'summary') return SUMMARY_SCHEMA;
   return {
     users: USER_SCHEMA,
@@ -306,6 +358,7 @@ export function getSchemas(target: SchemaTarget): JsonSchema | Record<string, Js
     beneficiaries: BENEFICIARY_SCHEMA,
     merchants: MERCHANT_SCHEMA,
     transactions: TRANSACTION_SCHEMA,
+    events: EVENT_SCHEMA,
     summary: SUMMARY_SCHEMA
   };
 }
@@ -321,6 +374,7 @@ export async function writeSchemas(target: SchemaTarget, outDir: string, pretty 
       writeFile(join(outDir, 'beneficiaries.schema.json'), JSON.stringify(BENEFICIARY_SCHEMA, null, spaces)),
       writeFile(join(outDir, 'merchants.schema.json'), JSON.stringify(MERCHANT_SCHEMA, null, spaces)),
       writeFile(join(outDir, 'transactions.schema.json'), JSON.stringify(TRANSACTION_SCHEMA, null, spaces)),
+      writeFile(join(outDir, 'events.schema.json'), JSON.stringify(EVENT_SCHEMA, null, spaces)),
       writeFile(join(outDir, 'summary.schema.json'), JSON.stringify(SUMMARY_SCHEMA, null, spaces))
     ]);
     return;

@@ -127,8 +127,8 @@ function normalizePatternAlias(pattern: string): string {
 
 export function parseOutputFormat(value: string): OutputFormat {
   const format = value.toLowerCase();
-  if (format !== 'csv' && format !== 'json' && format !== 'ndjson' && format !== 'sql' && format !== 'both' && format !== 'all') {
-    throw new Error('--format must be one of: csv, json, ndjson, sql, both, all');
+  if (format !== 'csv' && format !== 'json' && format !== 'ndjson' && format !== 'sql' && format !== 'parquet' && format !== 'both' && format !== 'all') {
+    throw new Error('--format must be one of: csv, json, ndjson, sql, parquet, both, all');
   }
   return format;
 }
@@ -155,6 +155,22 @@ export function validateGenerateOptions(options: GenerateOptions): void {
   const invalidPatterns = options.patterns.filter((pattern) => !FRAUD_PATTERNS.includes(pattern));
   if (invalidPatterns.length > 0) {
     throw new Error(`Unknown fraud pattern(s): ${invalidPatterns.join(', ')}. Allowed patterns: ${FRAUD_PATTERNS.join(', ')}`);
+  }
+  if (options.patternWeights !== undefined) {
+    const entries = Object.entries(options.patternWeights);
+    const invalidWeightedPatterns = entries
+      .map(([pattern]) => pattern)
+      .filter((pattern) => !FRAUD_PATTERNS.includes(pattern as FraudPattern));
+    const invalidWeights = entries.filter(([, weight]) => typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0);
+    if (invalidWeightedPatterns.length > 0) {
+      throw new Error(`Unknown weighted fraud pattern(s): ${invalidWeightedPatterns.join(', ')}. Allowed patterns: ${FRAUD_PATTERNS.join(', ')}`);
+    }
+    if (invalidWeights.length > 0) {
+      throw new Error('Pattern weights must be non-negative numbers');
+    }
+    if (entries.length > 0 && entries.every(([, weight]) => weight === 0)) {
+      throw new Error('At least one pattern weight must be greater than 0');
+    }
   }
   if (normalizeCountry(options.country).length !== 2) {
     throw new Error('--country must be a 2-letter ISO country code such as NG');

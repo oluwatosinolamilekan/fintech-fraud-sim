@@ -5,6 +5,7 @@ import {
   SyntheticAccount,
   SyntheticBeneficiary,
   SyntheticDevice,
+  SyntheticEvent,
   SyntheticMerchant,
   SyntheticTransaction,
   SyntheticUser
@@ -102,6 +103,21 @@ const MERCHANT_FIELDS: (keyof SyntheticMerchant)[] = [
   'is_high_risk'
 ];
 
+const EVENT_FIELDS: (keyof SyntheticEvent)[] = [
+  'event_id',
+  'event_type',
+  'timestamp',
+  'user_id',
+  'entity_id',
+  'entity_type',
+  'risk_score',
+  'recommended_action',
+  'is_suspicious',
+  'fraud_pattern',
+  'reason_codes',
+  'network_id'
+];
+
 export async function writeCsv(dataset: GeneratedDataset, outDir: string): Promise<void> {
   await mkdir(outDir, { recursive: true });
   await Promise.all([
@@ -110,7 +126,8 @@ export async function writeCsv(dataset: GeneratedDataset, outDir: string): Promi
     writeFile(join(outDir, 'devices.csv'), toCsv(dataset.devices, DEVICE_FIELDS)),
     writeFile(join(outDir, 'beneficiaries.csv'), toCsv(dataset.beneficiaries, BENEFICIARY_FIELDS)),
     writeFile(join(outDir, 'merchants.csv'), toCsv(dataset.merchants, MERCHANT_FIELDS)),
-    writeFile(join(outDir, 'transactions.csv'), toCsv(dataset.transactions, TRANSACTION_FIELDS))
+    writeFile(join(outDir, 'transactions.csv'), toCsv(dataset.transactions, TRANSACTION_FIELDS)),
+    writeFile(join(outDir, 'events.csv'), toCsv(dataset.events, EVENT_FIELDS))
   ]);
 }
 

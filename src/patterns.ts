@@ -25,7 +25,15 @@ export const PATTERN_DEFINITIONS: Record<FraudPattern, string> = {
   transaction_spike: 'Transaction amount far above the user baseline.',
   cross_border_anomaly: 'Declared country differs from IP or beneficiary country.',
   beneficiary_burst: 'Many new beneficiaries added in the last 24 hours.',
-  fraud_ring: 'Coordinated users linked by shared devices, beneficiaries, and clustered cashout behavior.'
+  fraud_ring: 'Coordinated users linked by shared devices, beneficiaries, and clustered cashout behavior.',
+  synthetic_identity: 'Recently created identity with repeated KYC friction and inconsistent identity signals.',
+  friendly_fraud: 'Customer-like behavior that later produces disputes, reversals, or chargebacks.',
+  promo_abuse: 'Many low-value transactions designed to exploit incentives, referrals, or promotional limits.',
+  merchant_collusion: 'High-risk merchant activity linked to suspicious users and repeated routed payments.',
+  refund_abuse: 'Refund-heavy behavior with reversals and repeat merchant interactions.',
+  sanctions_false_positive: 'Watchlist-like name or corridor signals that should exercise review queues without real sanctions data.',
+  structuring: 'Multiple transactions intentionally kept below review thresholds.',
+  layering: 'Rapid movement across rails, beneficiaries, or corridors to mimic AML layering behavior.'
 };
 
 export const PATTERN_REASON_CODES: Record<FraudPattern, string[]> = {
@@ -37,7 +45,15 @@ export const PATTERN_REASON_CODES: Record<FraudPattern, string[]> = {
   transaction_spike: ['AMOUNT_ABOVE_BASELINE', 'UNUSUAL_TRANSACTION_SPIKE'],
   cross_border_anomaly: ['DECLARED_COUNTRY_MISMATCH', 'CROSS_BORDER_BENEFICIARY'],
   beneficiary_burst: ['BENEFICIARY_BURST_24H', 'NEW_PAYEE_CLUSTER'],
-  fraud_ring: ['SHARED_DEVICE_CLUSTER', 'SHARED_BENEFICIARY_CLUSTER', 'COORDINATED_FUNDS_MOVEMENT']
+  fraud_ring: ['SHARED_DEVICE_CLUSTER', 'SHARED_BENEFICIARY_CLUSTER', 'COORDINATED_FUNDS_MOVEMENT'],
+  synthetic_identity: ['SYNTHETIC_IDENTITY_SIGNAL', 'MULTIPLE_FAILED_KYC', 'NEW_ACCOUNT'],
+  friendly_fraud: ['FRIENDLY_FRAUD_DISPUTE_PATTERN', 'REVERSAL_HISTORY', 'PRIOR_CHARGEBACKS'],
+  promo_abuse: ['PROMO_ABUSE_PATTERN', 'LOW_VALUE_HIGH_FREQUENCY', 'SHORT_WINDOW_ACTIVITY'],
+  merchant_collusion: ['MERCHANT_COLLUSION_SIGNAL', 'HIGH_RISK_MERCHANT', 'REPEATED_MERCHANT_ACTIVITY'],
+  refund_abuse: ['REFUND_ABUSE_PATTERN', 'REVERSAL_HISTORY', 'REPEATED_MERCHANT_ACTIVITY'],
+  sanctions_false_positive: ['WATCHLIST_LIKE_SIGNAL', 'CROSS_BORDER_BENEFICIARY', 'REVIEW_REQUIRED'],
+  structuring: ['STRUCTURING_BELOW_THRESHOLD', 'HIGH_TXN_VELOCITY', 'SHORT_WINDOW_ACTIVITY'],
+  layering: ['LAYERING_RAPID_MOVEMENT', 'CROSS_BORDER_BENEFICIARY', 'RAPID_FUNDS_MOVEMENT']
 };
 
 export function applyFraudPattern(user: SyntheticUser, pattern: FraudPattern, rng: SimRandom): SyntheticUser {
@@ -120,6 +136,69 @@ export function applyFraudPattern(user: SyntheticUser, pattern: FraudPattern, rn
         device_count: rng.int(2, 6),
         failed_login_attempts_24h: rng.int(2, 12)
       };
+    case 'synthetic_identity':
+      return {
+        ...patched,
+        account_age_days: rng.int(1, 14),
+        kyc_status: rng.pick(['pending', 'rejected']),
+        failed_kyc_attempts: rng.int(4, 12),
+        device_count: rng.int(3, 9),
+        ip_country: suspiciousCountry,
+        declared_country: rng.bool(0.6) ? suspiciousCountry : user.declared_country
+      };
+    case 'friendly_fraud':
+      return {
+        ...patched,
+        chargeback_count: rng.int(3, 10),
+        account_age_days: rng.int(180, 2400),
+        kyc_status: 'verified',
+        risk_label: 'high'
+      };
+    case 'promo_abuse':
+      return {
+        ...patched,
+        account_age_days: rng.int(1, 45),
+        device_count: rng.int(3, 8),
+        beneficiary_count_24h: rng.int(4, 16),
+        risk_label: 'medium'
+      };
+    case 'merchant_collusion':
+      return {
+        ...patched,
+        account_age_days: rng.int(20, 365),
+        beneficiary_count_24h: rng.int(5, 18),
+        chargeback_count: rng.int(1, 5),
+        risk_label: 'high'
+      };
+    case 'refund_abuse':
+      return {
+        ...patched,
+        chargeback_count: rng.int(2, 8),
+        beneficiary_count_24h: rng.int(1, 6),
+        risk_label: 'high'
+      };
+    case 'sanctions_false_positive':
+      return {
+        ...patched,
+        ip_country: suspiciousCountry,
+        beneficiary_count_24h: rng.int(1, 5),
+        risk_label: 'medium'
+      };
+    case 'structuring':
+      return {
+        ...patched,
+        beneficiary_count_24h: rng.int(4, 18),
+        device_count: rng.int(1, 4),
+        risk_label: 'high'
+      };
+    case 'layering':
+      return {
+        ...patched,
+        ip_country: suspiciousCountry,
+        beneficiary_count_24h: rng.int(6, 24),
+        device_count: rng.int(2, 7),
+        risk_label: 'high'
+      };
   }
 }
 
@@ -138,6 +217,15 @@ export function transactionCountForUser(user: SyntheticUser, min: number, max: n
       return Math.max(max, rng.int(12, 40));
     case 'fraud_ring':
       return Math.max(max, rng.int(18, 50));
+    case 'promo_abuse':
+    case 'structuring':
+      return Math.max(max, rng.int(30, 70));
+    case 'layering':
+      return Math.max(max, rng.int(18, 55));
+    case 'merchant_collusion':
+    case 'refund_abuse':
+    case 'friendly_fraud':
+      return Math.max(max, rng.int(12, 36));
     default:
       return rng.int(Math.max(min, 3), Math.max(max, 8));
   }
@@ -247,6 +335,15 @@ function suspiciousTransactionQuota(pattern: SyntheticUser['fraud_pattern'], rng
       return rng.int(5, 15);
     case 'fraud_ring':
       return rng.int(8, 22);
+    case 'promo_abuse':
+    case 'structuring':
+      return rng.int(12, 30);
+    case 'layering':
+      return rng.int(10, 24);
+    case 'merchant_collusion':
+    case 'refund_abuse':
+    case 'friendly_fraud':
+      return rng.int(5, 18);
     default:
       return rng.int(1, 5);
   }
@@ -271,6 +368,17 @@ function amountForPattern(pattern: SyntheticUser['fraud_pattern'], isSuspicious:
       return currencyMinorUnits(rng.float(200000, 2500000));
     case 'fraud_ring':
       return currencyMinorUnits(rng.float(180000, 2200000));
+    case 'promo_abuse':
+      return currencyMinorUnits(rng.float(200, 25000));
+    case 'structuring':
+      return currencyMinorUnits(rng.float(REVIEW_THRESHOLD * 0.7, REVIEW_THRESHOLD * 0.98));
+    case 'layering':
+      return currencyMinorUnits(rng.float(120000, 2500000));
+    case 'friendly_fraud':
+    case 'refund_abuse':
+      return currencyMinorUnits(rng.float(30000, 900000));
+    case 'merchant_collusion':
+      return currencyMinorUnits(rng.float(150000, 1800000));
     default:
       return currencyMinorUnits(rng.float(100000, 1800000));
   }
@@ -296,6 +404,12 @@ function paymentRailForPattern(
   }
   if (pattern === 'chargeback_risk') {
     return pickPreferredRail(['card', 'merchant_payment'], rails, rng);
+  }
+  if (pattern === 'friendly_fraud' || pattern === 'refund_abuse' || pattern === 'merchant_collusion') {
+    return pickPreferredRail(['card', 'merchant_payment', 'payout'], rails, rng);
+  }
+  if (pattern === 'structuring' || pattern === 'layering') {
+    return pickPreferredRail(['bank_transfer', 'wallet_transfer', 'swift', 'crypto_wallet', 'cashout'], rails, rng);
   }
   return rng.pick(rails);
 }

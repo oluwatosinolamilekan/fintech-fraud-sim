@@ -317,6 +317,7 @@ export async function buildImpactReportFromDirectory(inputDir: string, suiteName
     beneficiaries: [],
     merchants: [],
     transactions,
+    events: [],
     summary
   } as unknown as GeneratedDataset;
   return buildImpactReport(dataset, suite, suiteName ?? null, basename(inputDir));

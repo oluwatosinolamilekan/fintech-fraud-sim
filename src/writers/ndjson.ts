@@ -11,6 +11,7 @@ export async function writeNdjson(dataset: GeneratedDataset, outDir: string): Pr
     writeFile(join(outDir, 'beneficiaries.ndjson'), toNdjson(dataset.beneficiaries)),
     writeFile(join(outDir, 'merchants.ndjson'), toNdjson(dataset.merchants)),
     writeFile(join(outDir, 'transactions.ndjson'), toNdjson(dataset.transactions)),
+    writeFile(join(outDir, 'events.ndjson'), toNdjson(dataset.events)),
     writeFile(join(outDir, 'summary.ndjson'), toNdjson([dataset.summary]))
   ]);
 }

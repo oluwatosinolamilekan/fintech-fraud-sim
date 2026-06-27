@@ -23,6 +23,9 @@ export type {
   RuleSimulationSummary,
   TransactionRule
 } from './rules.js';
+export { RULE_TEMPLATES } from './rule-templates.js';
+export { validateDataset, validateDatasetDirectory } from './validate.js';
+export type { ValidationIssue, ValidationSummary } from './validate.js';
 export {
   BENCHMARK_SUITE_NAMES,
   BENCHMARK_SUITES,
@@ -68,6 +71,7 @@ export {
   BENEFICIARY_SCHEMA,
   DEVICE_SCHEMA,
   MERCHANT_SCHEMA,
+  EVENT_SCHEMA,
   USER_SCHEMA,
   TRANSACTION_SCHEMA,
   SUMMARY_SCHEMA
@@ -77,6 +81,9 @@ export { writeCsv, toCsv } from './writers/csv.js';
 export { writeJson } from './writers/json.js';
 export { writeNdjson, toNdjson } from './writers/ndjson.js';
 export { writeSql, toSql } from './writers/sql.js';
+export { writeParquet } from './writers/parquet.js';
+export { serveDataset } from './server.js';
+export type { ServeOptions } from './server.js';
 export type {
   AccountStatus,
   AccountType,
@@ -102,6 +109,8 @@ export type {
   SyntheticAccount,
   SyntheticBeneficiary,
   SyntheticDevice,
+  SyntheticEvent,
+  SyntheticEventType,
   SyntheticMerchant,
   SyntheticTransaction,
   SyntheticUser,

@@ -6,10 +6,12 @@ import {
   SyntheticAccount,
   SyntheticBeneficiary,
   SyntheticDevice,
+  SyntheticEvent,
   SyntheticMerchant,
   SyntheticUser,
   GeneratedDataset,
-  GenerateOptions
+  GenerateOptions,
+  FraudPattern
 } from './types.js';
 import { applyFraudPattern, makeTransactionForUser, transactionCountForUser } from './patterns.js';
 import { actionForRiskScore, scoreUserRisk } from './risk.js';
@@ -42,7 +44,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
   const users: SyntheticUser[] = [];
 
   for (let index = 0; index < configuredOptions.users; index += 1) {
-    const pattern = rng.pick(configuredOptions.patterns);
+    const pattern = pickFraudPattern(configuredOptions.patterns, configuredOptions.patternWeights, rng);
     const baseUser = makeBaseUser(country, profile, rng);
     const user = fraudIndexes.has(index) ? applyFraudPattern(baseUser, pattern, rng) : baseUser;
     const riskScore = scoreUserRisk(user);
@@ -91,6 +93,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
     }
     return accumulator;
   }, {});
+  const events = makeEvents(users, devices, beneficiaries, transactions, rng, baseTimeMs);
 
   return {
     users,
@@ -99,6 +102,7 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
     beneficiaries,
     merchants,
     transactions,
+    events,
     summary: {
       total_users: users.length,
       total_accounts: accounts.length,
@@ -119,6 +123,147 @@ export function generateDataset(options: GenerateOptions): GeneratedDataset {
       seed: configuredOptions.seed ?? null
     }
   };
+}
+
+function pickFraudPattern(
+  patterns: FraudPattern[],
+  weights: GenerateOptions['patternWeights'],
+  rng: SimRandom
+): FraudPattern {
+  if (!weights) {
+    return rng.pick(patterns);
+  }
+  const weighted = patterns.map((pattern) => ({
+    pattern,
+    weight: weights[pattern] ?? 1
+  }));
+  const total = weighted.reduce((sum, item) => sum + item.weight, 0);
+  if (total <= 0) {
+    return rng.pick(patterns);
+  }
+  let cursor = rng.float(0, total, 8);
+  for (const item of weighted) {
+    cursor -= item.weight;
+    if (cursor <= 0) return item.pattern;
+  }
+  return weighted[weighted.length - 1].pattern;
+}
+
+function makeEvents(
+  users: SyntheticUser[],
+  devices: SyntheticDevice[],
+  beneficiaries: SyntheticBeneficiary[],
+  transactions: GeneratedDataset['transactions'],
+  rng: SimRandom,
+  baseTimeMs: number
+): SyntheticEvent[] {
+  const usersById = new Map(users.map((user) => [user.user_id, user]));
+  const events: SyntheticEvent[] = [];
+
+  for (const user of users) {
+    const createdAt = new Date(baseTimeMs - user.account_age_days * 24 * 60 * 60 * 1000);
+    events.push({
+      event_id: syntheticId('evt', rng),
+      event_type: 'user_created',
+      timestamp: createdAt.toISOString(),
+      user_id: user.user_id,
+      entity_id: user.user_id,
+      entity_type: 'user',
+      risk_score: user.risk_score,
+      recommended_action: user.recommended_action,
+      is_suspicious: user.is_fraud,
+      fraud_pattern: user.fraud_pattern,
+      reason_codes: user.reason_codes,
+      network_id: user.network_id
+    });
+    for (let attempt = 0; attempt < Math.max(1, user.failed_kyc_attempts); attempt += 1) {
+      events.push({
+        event_id: syntheticId('evt', rng),
+        event_type: 'kyc_attempt',
+        timestamp: new Date(createdAt.getTime() + rng.int(1, 72) * 60 * 60 * 1000).toISOString(),
+        user_id: user.user_id,
+        entity_id: `${user.user_id}_kyc_${attempt + 1}`,
+        entity_type: 'kyc',
+        risk_score: user.risk_score,
+        recommended_action: user.recommended_action,
+        is_suspicious: user.is_fraud && user.failed_kyc_attempts >= 3,
+        fraud_pattern: user.fraud_pattern,
+        reason_codes: user.failed_kyc_attempts >= 3 ? user.reason_codes : [],
+        network_id: user.network_id
+      });
+    }
+  }
+
+  for (const device of devices) {
+    const user = usersById.get(device.user_id);
+    events.push({
+      event_id: syntheticId('evt', rng),
+      event_type: 'device_seen',
+      timestamp: device.last_seen_at,
+      user_id: device.user_id,
+      entity_id: device.device_id,
+      entity_type: 'device',
+      risk_score: user?.risk_score ?? null,
+      recommended_action: user?.recommended_action ?? null,
+      is_suspicious: device.is_fraud_linked,
+      fraud_pattern: user?.fraud_pattern ?? 'none',
+      reason_codes: device.is_fraud_linked ? user?.reason_codes ?? [] : [],
+      network_id: device.network_id
+    });
+  }
+
+  for (const beneficiary of beneficiaries) {
+    const user = usersById.get(beneficiary.user_id);
+    events.push({
+      event_id: syntheticId('evt', rng),
+      event_type: 'beneficiary_added',
+      timestamp: beneficiary.added_at,
+      user_id: beneficiary.user_id,
+      entity_id: beneficiary.beneficiary_id,
+      entity_type: 'beneficiary',
+      risk_score: user?.risk_score ?? null,
+      recommended_action: user?.recommended_action ?? null,
+      is_suspicious: beneficiary.is_fraud_linked,
+      fraud_pattern: user?.fraud_pattern ?? 'none',
+      reason_codes: beneficiary.is_fraud_linked ? user?.reason_codes ?? [] : [],
+      network_id: beneficiary.network_id
+    });
+  }
+
+  for (const transaction of transactions) {
+    events.push({
+      event_id: syntheticId('evt', rng),
+      event_type: 'transaction_created',
+      timestamp: transaction.timestamp,
+      user_id: transaction.user_id,
+      entity_id: transaction.transaction_id,
+      entity_type: 'transaction',
+      risk_score: transaction.risk_score,
+      recommended_action: transaction.recommended_action,
+      is_suspicious: transaction.is_suspicious,
+      fraud_pattern: transaction.fraud_pattern,
+      reason_codes: transaction.reason_codes,
+      network_id: transaction.network_id
+    });
+    if (transaction.recommended_action !== 'allow') {
+      events.push({
+        event_id: syntheticId('evt', rng),
+        event_type: 'rule_decision',
+        timestamp: new Date(Date.parse(transaction.timestamp) + rng.int(1, 120) * 1000).toISOString(),
+        user_id: transaction.user_id,
+        entity_id: transaction.transaction_id,
+        entity_type: 'decision',
+        risk_score: transaction.risk_score,
+        recommended_action: transaction.recommended_action,
+        is_suspicious: transaction.is_suspicious,
+        fraud_pattern: transaction.fraud_pattern,
+        reason_codes: transaction.reason_codes,
+        network_id: transaction.network_id
+      });
+    }
+  }
+
+  return events.sort((left, right) => left.timestamp.localeCompare(right.timestamp));
 }
 
 function generationBaseTime(seed: string | number | undefined, rng: SimRandom): number {
