@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fintech-fraud-sim event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "timestamp",
+    "user_id",
+    "entity_id",
+    "entity_type",
+    "risk_score",
+    "recommended_action",
+    "is_suspicious",
+    "fraud_pattern",
+    "reason_codes",
+    "network_id"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "enum": [
+        "user_created",
+        "kyc_attempt",
+        "device_seen",
+        "beneficiary_added",
+        "transaction_created",
+        "rule_decision"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "entity_type": {
+      "enum": [
+        "user",
+        "kyc",
+        "device",
+        "beneficiary",
+        "transaction",
+        "decision"
+      ]
+    },
+    "risk_score": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "recommended_action": {
+      "enum": [
+        "allow",
+        "review",
+        "block",
+        null
+      ]
+    },
+    "is_suspicious": {
+      "type": "boolean"
+    },
+    "fraud_pattern": {
+      "type": "string"
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "network_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

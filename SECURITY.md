@@ -4,8 +4,8 @@
 
 | Version | Supported |
 | ------- | --------- |
-| 0.2.x   | ✅        |
-| < 0.2   | ❌        |
+| 0.4.x   | ✅        |
+| < 0.4   | ❌        |
 
 ## Reporting a Vulnerability
 
@@ -31,3 +31,5 @@ You will receive a response within **48 hours**. If the issue is confirmed, a pa
 - GitHub Actions are pinned to **full commit SHAs**
 - Dependencies install with `--ignore-scripts` to prevent malicious install hooks
 - This package generates **synthetic data only** — no real PII, credentials, or network calls
+- Runtime dependencies are intentionally minimal and reviewed before release
+- Published package contents are allow-listed through `package.json#files`
