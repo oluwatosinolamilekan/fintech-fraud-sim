@@ -23,8 +23,9 @@ import { getSchemas, writeSchemas } from './schemas.js';
 import { writeCsv } from './writers/csv.js';
 import { writeJson } from './writers/json.js';
 import { writeNdjson } from './writers/ndjson.js';
+import { writeParquet } from './writers/parquet.js';
 import { writeSql } from './writers/sql.js';
-import type { GenerateOptions, PaymentRail, PlatformName, UseCaseName } from './types.js';
+import type { FraudPattern, GenerateOptions, PaymentRail, PlatformName, UseCaseName } from './types.js';
 import type { SchemaTarget } from './schemas.js';
 import { parseOutputFormat, parsePatterns, parsePaymentRails, toInteger, toNumber, validateGenerateOptions } from './utils.js';
 import { parseUseCase, USE_CASE_PRESETS } from './use-cases.js';
@@ -44,6 +45,8 @@ type GenerateConfig = Partial<Omit<GenerateOptions, 'patterns' | 'paymentRails'>
   transactions_max?: number;
   payment_rails?: string[] | string;
   patterns?: string[] | string;
+  pattern_weights?: Record<string, number>;
+  patternWeights?: Partial<Record<FraudPattern, number>>;
   paymentRails?: PaymentRail[] | string;
 };
 
@@ -58,7 +61,7 @@ program
   .addHelpText('after', '\nRisk scoring fields are included in generated users and transactions.')
   .option('--users <number>', 'number of users to generate', parseIntegerOption('--users'), 1000)
   .option('--fraud-rate <number>', 'fraction of users to label as fraud, between 0 and 1', parseNumberOption('--fraud-rate'), 0.05)
-  .option('--format <csv|json|ndjson|sql|both|all>', 'output format', 'both')
+  .option('--format <csv|json|ndjson|sql|parquet|both|all>', 'output format', 'both')
   .option('--out <path>', 'output directory', './output')
   .option('--config <path>', 'JSON config file with generation options')
   .option('--country <code>', 'default 2-letter country code', 'NG')
@@ -67,6 +70,7 @@ program
   .option('--platform <name>', 'platform preset for fintech, marketplace, crypto, social, gaming, lending, or remittance')
   .option('--payment-rails <list>', 'comma-separated payment rails to emit')
   .option('--patterns <list>', 'comma-separated fraud patterns, or all', 'all')
+  .option('--pattern-weights <json>', 'JSON object mapping fraud patterns to numeric weights')
   .option('--use-case <name>', USE_CASE_HELP)
   .option('--seed <value>', 'string or number seed for deterministic output')
   .option('--transactions-min <number>', 'minimum transactions per non-fraud user', parseIntegerOption('--transactions-min'), 1)
@@ -88,6 +92,9 @@ program
       }
       if (options.format === 'sql' || options.format === 'all') {
         await writeSql(dataset, options.out);
+      }
+      if (options.format === 'parquet' || options.format === 'all') {
+        await writeParquet(dataset, options.out);
       }
 
       console.log(`Generated ${dataset.summary.total_users} users and ${dataset.summary.total_transactions} transactions in ${options.out}`);
@@ -150,7 +157,7 @@ program
   .argument('<prompt...>', 'scenario prompt, for example "UK-Nigeria remittance mule cashout with beneficiary bursts"')
   .option('--users <number>', 'override inferred number of users', parseIntegerOption('--users'))
   .option('--fraud-rate <number>', 'override inferred fraud rate', parseNumberOption('--fraud-rate'))
-  .option('--format <csv|json|ndjson|sql|both|all>', 'output format', parseOutputFormatOption, 'json')
+  .option('--format <csv|json|ndjson|sql|parquet|both|all>', 'output format', parseOutputFormatOption, 'json')
   .option('--out <path>', 'output directory', './scenario-output')
   .option('--seed <value>', 'string or number seed for deterministic output')
   .option('--plan-only', 'print the inferred scenario plan without writing generated data', false)
@@ -394,7 +401,11 @@ program
   .requiredOption('--input <path>', 'directory containing generated users.json and/or transactions.json')
   .option('--target <transactions|users>', 'training target to export', parseMlExportTargetOption, 'transactions')
   .option('--out <path>', 'output directory for X/y CSV files and feature metadata', './ml-export')
+  .option('--format <csv|json>', 'feature matrix output format', parseMlExportFormatOption, 'csv')
   .option('--split <number>', 'fraction of rows to place in training set', parseNumberOption('--split'), 0.8)
+  .option('--validation-split <number>', 'optional fraction of rows to place in validation set', parseNumberOption('--validation-split'))
+  .option('--stratify', 'preserve label ratio across train/test/validation splits', false)
+  .option('--include-leakage-fields', 'include generated target/leakage fields for debugging only', false)
   .option('--seed <value>', 'string or number seed for deterministic train/test split')
   .action(async (rawOptions) => {
     try {
@@ -402,7 +413,11 @@ program
         input: resolve(rawOptions.input as string),
         out: resolve(rawOptions.out as string),
         target: rawOptions.target as MlExportTarget,
+        format: rawOptions.format,
         split: rawOptions.split as number,
+        validationSplit: rawOptions.validationSplit as number | undefined,
+        stratify: Boolean(rawOptions.stratify),
+        includeLeakageFields: Boolean(rawOptions.includeLeakageFields),
         seed: rawOptions.seed as string | number | undefined
       });
 
@@ -416,9 +431,76 @@ program
   });
 
 program
+  .command('validate')
+  .description('Validate a generated JSON output directory for schema shape and referential integrity.')
+  .requiredOption('--input <path>', 'directory containing generated JSON dataset files')
+  .option('--out <path>', 'optional path to write validation JSON')
+  .option('--pretty', 'write formatted JSON output', false)
+  .action(async (rawOptions) => {
+    try {
+      const { validateDatasetDirectory } = await import('./validate.js');
+      const result = await validateDatasetDirectory(resolve(rawOptions.input as string));
+      const output = JSON.stringify(result, null, rawOptions.pretty ? 2 : 0);
+      if (rawOptions.out) {
+        await writeFile(resolve(rawOptions.out as string), output);
+        console.log(`Wrote validation summary to ${resolve(rawOptions.out as string)}`);
+      } else {
+        console.log(output);
+      }
+      if (!result.valid) process.exitCode = 1;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('serve')
+  .description('Serve a generated JSON dataset through a small local HTTP API.')
+  .requiredOption('--input <path>', 'directory containing generated JSON dataset files')
+  .option('--port <number>', 'port to listen on', parseIntegerOption('--port'), 3333)
+  .action(async (rawOptions) => {
+    try {
+      const { serveDataset } = await import('./server.js');
+      const server = await serveDataset({
+        input: resolve(rawOptions.input as string),
+        port: rawOptions.port as number
+      });
+      console.log(`Serving fintech-fraud-sim dataset at ${server.url}`);
+      console.log('Endpoints: /summary, /users, /transactions, /events, /risk/:transactionId');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('rules-init')
+  .description('Write a starter rule pack template.')
+  .option('--template <aml|app-fraud|marketplace>', 'rule template name', parseRuleTemplateOption, 'aml')
+  .option('--out <path>', 'output rule pack path', './rules.json')
+  .option('--pretty', 'write formatted JSON output', true)
+  .action(async (rawOptions) => {
+    try {
+      const { RULE_TEMPLATES } = await import('./rule-templates.js');
+      const template = RULE_TEMPLATES[rawOptions.template as keyof typeof RULE_TEMPLATES];
+      const out = resolve(rawOptions.out as string);
+      await mkdir(dirnameCompat(out), { recursive: true });
+      await writeFile(out, JSON.stringify(template, null, rawOptions.pretty ? 2 : 0));
+      console.log(`Wrote ${rawOptions.template} rule template to ${out}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command('schema')
   .description('Print or export JSON Schema files for generated data.')
-  .option('--target <users|accounts|devices|beneficiaries|merchants|transactions|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
+  .option('--target <users|accounts|devices|beneficiaries|merchants|transactions|events|summary|all>', 'schema target', parseSchemaTargetOption, 'all')
   .option('--out <path>', 'directory to write schema files instead of printing to stdout')
   .option('--pretty', 'write formatted JSON output', false)
   .action(async (rawOptions) => {
@@ -453,6 +535,9 @@ async function writeGeneratedDataset(dataset: ReturnType<typeof generateDataset>
   }
   if (options.format === 'sql' || options.format === 'all') {
     await writeSql(dataset, options.out);
+  }
+  if (options.format === 'parquet' || options.format === 'all') {
+    await writeParquet(dataset, options.out);
   }
 }
 
@@ -497,6 +582,7 @@ async function buildGenerateOptions(rawOptions: Record<string, unknown>, command
     platform: platform as PlatformName | undefined,
     paymentRails: resolvePresetValue('paymentRails', parsedPaymentRails),
     patterns: parsePatternOption(resolvePresetValue('patterns', rawValue<string[] | string | undefined>('patterns', 'patterns'))),
+    patternWeights: parsePatternWeightsOption(rawValue<Record<string, number> | string | undefined>('patternWeights', 'patternWeights', 'pattern_weights')),
     seed: rawValue<string | number | undefined>('seed', 'seed'),
     transactionsMin: resolvePresetValue('transactionsMin', rawValue<number>('transactionsMin', 'transactionsMin', 'transactions_min')),
     transactionsMax: resolvePresetValue('transactionsMax', rawValue<number>('transactionsMax', 'transactionsMax', 'transactions_max')),
@@ -506,6 +592,15 @@ async function buildGenerateOptions(rawOptions: Record<string, unknown>, command
 
   validateGenerateOptions(options);
   return options;
+}
+
+function parsePatternWeightsOption(value: Record<string, number> | string | undefined): Partial<Record<FraudPattern, number>> | undefined {
+  if (value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'string' ? JSON.parse(value) as unknown : value;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('--pattern-weights must be a JSON object');
+  }
+  return parsed as Partial<Record<FraudPattern, number>>;
 }
 
 async function readGenerateConfig(path?: string): Promise<GenerateConfig> {
@@ -560,6 +655,27 @@ function parseOutputFormatOption(value: string) {
   }
 }
 
+function parseMlExportFormatOption(value: string) {
+  const format = value.toLowerCase();
+  if (format !== 'csv' && format !== 'json') {
+    throw new InvalidArgumentError('--format must be one of: csv, json');
+  }
+  return format;
+}
+
+function parseRuleTemplateOption(value: string): 'aml' | 'app-fraud' | 'marketplace' {
+  const template = value.toLowerCase();
+  if (template !== 'aml' && template !== 'app-fraud' && template !== 'marketplace') {
+    throw new InvalidArgumentError('--template must be one of: aml, app-fraud, marketplace');
+  }
+  return template;
+}
+
+function dirnameCompat(path: string): string {
+  const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return index <= 0 ? '.' : path.slice(0, index);
+}
+
 function parseSchemaTargetOption(value: string): SchemaTarget {
   const target = value.toLowerCase();
   if (
@@ -569,10 +685,11 @@ function parseSchemaTargetOption(value: string): SchemaTarget {
     target !== 'beneficiaries' &&
     target !== 'merchants' &&
     target !== 'transactions' &&
+    target !== 'events' &&
     target !== 'summary' &&
     target !== 'all'
   ) {
-    throw new InvalidArgumentError('--target must be one of: users, accounts, devices, beneficiaries, merchants, transactions, summary, all');
+    throw new InvalidArgumentError('--target must be one of: users, accounts, devices, beneficiaries, merchants, transactions, events, summary, all');
   }
   return target;
 }

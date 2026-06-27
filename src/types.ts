@@ -7,11 +7,19 @@ export const FRAUD_PATTERNS = [
   'transaction_spike',
   'cross_border_anomaly',
   'beneficiary_burst',
-  'fraud_ring'
+  'fraud_ring',
+  'synthetic_identity',
+  'friendly_fraud',
+  'promo_abuse',
+  'merchant_collusion',
+  'refund_abuse',
+  'sanctions_false_positive',
+  'structuring',
+  'layering'
 ] as const;
 
 export type FraudPattern = (typeof FRAUD_PATTERNS)[number];
-export type OutputFormat = 'csv' | 'json' | 'ndjson' | 'sql' | 'both' | 'all';
+export type OutputFormat = 'csv' | 'json' | 'ndjson' | 'sql' | 'parquet' | 'both' | 'all';
 export type BuiltInPlatformName =
   | 'fintech'
   | 'marketplace'
@@ -109,6 +117,7 @@ export interface GenerateOptions {
   platform?: PlatformName;
   paymentRails?: PaymentRail[];
   patterns: FraudPattern[];
+  patternWeights?: Partial<Record<FraudPattern, number>>;
   plugins?: GenerationPlugin[];
   seed?: string | number;
   transactionsMin: number;
@@ -209,6 +218,29 @@ export interface SyntheticMerchant {
   is_high_risk: boolean;
 }
 
+export type SyntheticEventType =
+  | 'user_created'
+  | 'kyc_attempt'
+  | 'device_seen'
+  | 'beneficiary_added'
+  | 'transaction_created'
+  | 'rule_decision';
+
+export interface SyntheticEvent {
+  event_id: string;
+  event_type: SyntheticEventType;
+  timestamp: string;
+  user_id: string;
+  entity_id: string;
+  entity_type: 'user' | 'kyc' | 'device' | 'beneficiary' | 'transaction' | 'decision';
+  risk_score: number | null;
+  recommended_action: RecommendedAction | null;
+  is_suspicious: boolean;
+  fraud_pattern: FraudPattern | 'none';
+  reason_codes: string[];
+  network_id: string | null;
+}
+
 export interface GeneratedDataset {
   users: SyntheticUser[];
   accounts: SyntheticAccount[];
@@ -216,6 +248,7 @@ export interface GeneratedDataset {
   beneficiaries: SyntheticBeneficiary[];
   merchants: SyntheticMerchant[];
   transactions: SyntheticTransaction[];
+  events: SyntheticEvent[];
   summary: GenerationSummary;
 }
 

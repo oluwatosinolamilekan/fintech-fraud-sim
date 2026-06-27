@@ -57,9 +57,10 @@ export function inferScenarioFromPrompt(prompt: string, overrides: ScenarioOverr
   const template = buildTemplate(normalizedPrompt);
   const explicitPatterns = inferPatterns(normalizedPrompt);
   const intensity = inferIntensity(normalizedPrompt);
+  const numericHints = inferNumericHints(normalizedPrompt);
   const options: GenerateOptions = {
-    users: overrides.users ?? template.users,
-    fraudRate: overrides.fraudRate ?? intensity.fraudRate ?? template.fraudRate,
+    users: overrides.users ?? numericHints.users ?? template.users,
+    fraudRate: overrides.fraudRate ?? numericHints.fraudRate ?? intensity.fraudRate ?? template.fraudRate,
     format: overrides.format ?? 'json',
     out: overrides.out ?? './scenario-output',
     country: template.country,
@@ -70,7 +71,7 @@ export function inferScenarioFromPrompt(prompt: string, overrides: ScenarioOverr
     patterns: explicitPatterns.length > 0 ? explicitPatterns : template.patterns,
     seed: overrides.seed,
     transactionsMin: template.transactionsMin,
-    transactionsMax: intensity.transactionsMax ?? template.transactionsMax,
+    transactionsMax: numericHints.transactionsMax ?? intensity.transactionsMax ?? template.transactionsMax,
     pretty: overrides.pretty ?? false,
     useCase: template.useCase
   };
@@ -188,7 +189,33 @@ function inferPatterns(prompt: string): FraudPattern[] {
   if (hasAny(prompt, ['cross-border', 'cross border', 'corridor', 'foreign beneficiary', 'country mismatch', 'remittance', 'uk-nigeria', 'gb-ng', 'uk-ghana', 'gb-gh', 'uk-kenya', 'gb-ke'])) patterns.add('cross_border_anomaly');
   if (hasAny(prompt, ['beneficiary', 'new payee', 'payee cluster', 'many payees'])) patterns.add('beneficiary_burst');
   if (hasAny(prompt, ['fraud ring', 'ring', 'networked fraud', 'linked accounts', 'shared device', 'shared beneficiary', 'collusion', 'coordinated'])) patterns.add('fraud_ring');
+  if (hasAny(prompt, ['synthetic identity', 'fake identity', 'identity fraud'])) patterns.add('synthetic_identity');
+  if (hasAny(prompt, ['friendly fraud', 'first party fraud'])) patterns.add('friendly_fraud');
+  if (hasAny(prompt, ['promo abuse', 'promotion abuse', 'referral abuse', 'bonus abuse'])) patterns.add('promo_abuse');
+  if (hasAny(prompt, ['merchant collusion', 'collusive merchant'])) patterns.add('merchant_collusion');
+  if (hasAny(prompt, ['refund abuse', 'return abuse'])) patterns.add('refund_abuse');
+  if (hasAny(prompt, ['sanctions false positive', 'watchlist false positive', 'watchlist'])) patterns.add('sanctions_false_positive');
+  if (hasAny(prompt, ['structuring', 'smurfing', 'below threshold'])) patterns.add('structuring');
+  if (hasAny(prompt, ['layering', 'rapid movement'])) patterns.add('layering');
   return [...patterns];
+}
+
+function inferNumericHints(prompt: string): { users?: number; fraudRate?: number; transactionsMax?: number } {
+  const userMatch = prompt.match(/\b(\d+(?:\.\d+)?)\s*(k|m)?\s+users?\b/);
+  const fraudMatch = prompt.match(/\b(\d+(?:\.\d+)?)\s*%\s*(?:fraud|suspicious|bad)\b/);
+  const transactionMatch = prompt.match(/\b(?:up to|max|maximum)\s+(\d+)\s+transactions?\b/);
+  return {
+    users: userMatch ? scaledNumber(userMatch[1], userMatch[2]) : undefined,
+    fraudRate: fraudMatch ? Number((Number(fraudMatch[1]) / 100).toFixed(4)) : undefined,
+    transactionsMax: transactionMatch ? Number(transactionMatch[1]) : undefined
+  };
+}
+
+function scaledNumber(value: string, suffix?: string): number {
+  const number = Number(value);
+  if (suffix === 'm') return Math.round(number * 1_000_000);
+  if (suffix === 'k') return Math.round(number * 1_000);
+  return Math.round(number);
 }
 
 function inferIntensity(prompt: string): { fraudRate?: number; transactionsMax?: number; label?: string } {

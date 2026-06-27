@@ -4,12 +4,17 @@ import type { SyntheticTransaction, SyntheticUser } from './types.js';
 import { hashSeed } from './utils.js';
 
 export type MlExportTarget = 'transactions' | 'users';
+export type MlExportFormat = 'csv' | 'json';
 
 export interface MlExportOptions {
   input: string;
   out: string;
   target: MlExportTarget;
+  format?: MlExportFormat;
   split?: number;
+  validationSplit?: number;
+  stratify?: boolean;
+  includeLeakageFields?: boolean;
   seed?: string | number;
 }
 
@@ -21,6 +26,8 @@ export interface MlFeatureMetadata {
   train_rows: number;
   test_rows: number;
   split: number;
+  validation_split: number;
+  stratified: boolean;
   features: string[];
   excluded_fields: string[];
   generated_files: string[];
@@ -68,21 +75,32 @@ const USER_EXCLUDED_FIELDS = [
 export async function exportMlTrainingDataset(options: MlExportOptions): Promise<MlExportResult> {
   validateMlExportOptions(options);
   const split = options.split ?? 0.8;
+  const validationSplit = options.validationSplit ?? 0;
+  const format = options.format ?? 'csv';
   const rows = options.target === 'transactions'
-    ? await buildTransactionRows(options.input)
-    : await buildUserRows(options.input);
+    ? await buildTransactionRows(options.input, Boolean(options.includeLeakageFields))
+    : await buildUserRows(options.input, Boolean(options.includeLeakageFields));
   const features = collectFeatureNames(rows);
-  const shuffled = deterministicShuffle(rows, options.seed ?? `${options.target}-ml-export`);
+  const shuffled = options.stratify
+    ? stratifiedShuffle(rows, options.seed ?? `${options.target}-ml-export`)
+    : deterministicShuffle(rows, options.seed ?? `${options.target}-ml-export`);
   const trainCount = Math.max(1, Math.min(shuffled.length - 1, Math.round(shuffled.length * split)));
   const trainRows = shuffled.slice(0, trainCount);
-  const testRows = shuffled.slice(trainCount);
+  const remainingRows = shuffled.slice(trainCount);
+  const validationCount = validationSplit > 0
+    ? Math.max(1, Math.min(remainingRows.length - 1, Math.round(shuffled.length * validationSplit)))
+    : 0;
+  const validationRows = remainingRows.slice(0, validationCount);
+  const testRows = remainingRows.slice(validationCount);
 
   await mkdir(options.out, { recursive: true });
+  const extension = format === 'json' ? 'json' : 'csv';
   const files = [
-    join(options.out, 'X_train.csv'),
-    join(options.out, 'y_train.csv'),
-    join(options.out, 'X_test.csv'),
-    join(options.out, 'y_test.csv'),
+    join(options.out, `X_train.${extension}`),
+    join(options.out, `y_train.${extension}`),
+    join(options.out, `X_test.${extension}`),
+    join(options.out, `y_test.${extension}`),
+    ...(validationRows.length > 0 ? [join(options.out, `X_validation.${extension}`), join(options.out, `y_validation.${extension}`)] : []),
     join(options.out, 'feature_metadata.json')
   ];
   const metadata: MlFeatureMetadata = {
@@ -93,23 +111,32 @@ export async function exportMlTrainingDataset(options: MlExportOptions): Promise
     train_rows: trainRows.length,
     test_rows: testRows.length,
     split,
+    validation_split: validationSplit,
+    stratified: Boolean(options.stratify),
     features,
-    excluded_fields: options.target === 'transactions' ? TRANSACTION_EXCLUDED_FIELDS : USER_EXCLUDED_FIELDS,
+    excluded_fields: options.includeLeakageFields ? [] : options.target === 'transactions' ? TRANSACTION_EXCLUDED_FIELDS : USER_EXCLUDED_FIELDS,
     generated_files: files.map((file) => file.split('/').at(-1) ?? file)
   };
 
-  await Promise.all([
-    writeFile(files[0], featureCsv(trainRows, features)),
-    writeFile(files[1], labelCsv(trainRows)),
-    writeFile(files[2], featureCsv(testRows, features)),
-    writeFile(files[3], labelCsv(testRows)),
-    writeFile(files[4], JSON.stringify(metadata, null, 2))
-  ]);
+  const writes = [
+    writeFile(files[0], featureOutput(trainRows, features, format)),
+    writeFile(files[1], labelOutput(trainRows, format)),
+    writeFile(files[2], featureOutput(testRows, features, format)),
+    writeFile(files[3], labelOutput(testRows, format))
+  ];
+  if (validationRows.length > 0) {
+    writes.push(
+      writeFile(files[4], featureOutput(validationRows, features, format)),
+      writeFile(files[5], labelOutput(validationRows, format))
+    );
+  }
+  writes.push(writeFile(files[files.length - 1], JSON.stringify(metadata, null, 2)));
+  await Promise.all(writes);
 
   return { metadata, files };
 }
 
-async function buildTransactionRows(input: string): Promise<LabeledFeatureRow[]> {
+async function buildTransactionRows(input: string, includeLeakageFields: boolean): Promise<LabeledFeatureRow[]> {
   const transactions = await readJsonFile<SyntheticTransaction[]>(join(input, 'transactions.json'));
   const users = await readOptionalJsonFile<SyntheticUser[]>(join(input, 'users.json')) ?? [];
   const usersById = new Map(users.map((user) => [user.user_id, user]));
@@ -138,13 +165,20 @@ async function buildTransactionRows(input: string): Promise<LabeledFeatureRow[]>
         ...oneHot('status', transaction.status),
         ...oneHot('beneficiary_country', transaction.beneficiary_country),
         ...oneHot('ip_country', transaction.ip_country),
-        ...(user ? oneHot('user_kyc_status', user.kyc_status) : {})
+        ...(user ? oneHot('user_kyc_status', user.kyc_status) : {}),
+        ...(includeLeakageFields ? leakageFeatures({
+          risk_score: transaction.risk_score,
+          recommended_action: transaction.recommended_action,
+          fraud_pattern: transaction.fraud_pattern,
+          reason_codes: transaction.reason_codes,
+          network_id: transaction.network_id
+        }) : {})
       }
     };
   });
 }
 
-async function buildUserRows(input: string): Promise<LabeledFeatureRow[]> {
+async function buildUserRows(input: string, includeLeakageFields: boolean): Promise<LabeledFeatureRow[]> {
   const users = await readJsonFile<SyntheticUser[]>(join(input, 'users.json'));
   return users.map((user) => ({
     id: user.user_id,
@@ -162,7 +196,15 @@ async function buildUserRows(input: string): Promise<LabeledFeatureRow[]> {
       ...oneHot('kyc_provider', user.kyc_provider),
       ...oneHot('kyc_status', user.kyc_status),
       ...oneHot('ip_country', user.ip_country),
-      ...oneHot('declared_country', user.declared_country)
+      ...oneHot('declared_country', user.declared_country),
+      ...(includeLeakageFields ? leakageFeatures({
+        risk_score: user.risk_score,
+        recommended_action: user.recommended_action,
+        fraud_pattern: user.fraud_pattern,
+        risk_label: user.risk_label,
+        reason_codes: user.reason_codes,
+        network_id: user.network_id
+      }) : {})
     }
   }));
 }
@@ -172,8 +214,18 @@ function validateMlExportOptions(options: MlExportOptions): void {
     throw new Error('--target must be one of: transactions, users');
   }
   const split = options.split ?? 0.8;
+  const validationSplit = options.validationSplit ?? 0;
+  if (options.format && options.format !== 'csv' && options.format !== 'json') {
+    throw new Error('--format must be one of: csv, json');
+  }
   if (split <= 0 || split >= 1 || Number.isNaN(split)) {
     throw new Error('--split must be a number greater than 0 and less than 1');
+  }
+  if (validationSplit < 0 || validationSplit >= 1 || Number.isNaN(validationSplit)) {
+    throw new Error('--validation-split must be a number greater than or equal to 0 and less than 1');
+  }
+  if (split + validationSplit >= 1) {
+    throw new Error('--split plus --validation-split must be less than 1');
   }
 }
 
@@ -209,9 +261,23 @@ function featureCsv(rows: LabeledFeatureRow[], features: string[]): string {
   return [header, ...body].join('\n');
 }
 
+function featureOutput(rows: LabeledFeatureRow[], features: string[], format: MlExportFormat): string {
+  if (format === 'json') {
+    return JSON.stringify(rows.map((row) => ({ row_id: row.id, ...row.features })), null, 2);
+  }
+  return featureCsv(rows, features);
+}
+
 function labelCsv(rows: LabeledFeatureRow[]): string {
   const body = rows.map((row) => `${row.id},${row.label}`);
   return ['row_id,label', ...body].join('\n');
+}
+
+function labelOutput(rows: LabeledFeatureRow[], format: MlExportFormat): string {
+  if (format === 'json') {
+    return JSON.stringify(rows.map((row) => ({ row_id: row.id, label: row.label })), null, 2);
+  }
+  return labelCsv(rows);
 }
 
 function oneHot(prefix: string, value: string): FeatureRow {
@@ -231,4 +297,34 @@ function deterministicShuffle<T>(items: T[], seed: string | number): T[] {
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
   return shuffled;
+}
+
+function stratifiedShuffle(rows: LabeledFeatureRow[], seed: string | number): LabeledFeatureRow[] {
+  const positives = deterministicShuffle(rows.filter((row) => row.label === 1), `${seed}:positive`);
+  const negatives = deterministicShuffle(rows.filter((row) => row.label === 0), `${seed}:negative`);
+  const mixed: LabeledFeatureRow[] = [];
+  while (positives.length > 0 || negatives.length > 0) {
+    if (positives.length > 0) mixed.push(positives.shift() as LabeledFeatureRow);
+    if (negatives.length > 0) mixed.push(negatives.shift() as LabeledFeatureRow);
+  }
+  return mixed;
+}
+
+function leakageFeatures(fields: Record<string, unknown>): FeatureRow {
+  const features: FeatureRow = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (typeof value === 'number') {
+      features[key] = value;
+    } else if (typeof value === 'string') {
+      Object.assign(features, oneHot(key, value));
+    } else if (Array.isArray(value)) {
+      features[`${key}_count`] = value.length;
+      for (const item of value) {
+        Object.assign(features, oneHot(key, String(item)));
+      }
+    } else if (value !== null && value !== undefined) {
+      Object.assign(features, oneHot(key, String(value)));
+    }
+  }
+  return features;
 }

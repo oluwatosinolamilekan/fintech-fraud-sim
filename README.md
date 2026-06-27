@@ -13,10 +13,12 @@ npx fintech-fraud-sim generate --users 5000 --fraud-rate 0.12 --format csv
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format json --out ./data
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format ndjson --out ./stream-data
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format sql --out ./db-seed
+npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.05 --format parquet --out ./warehouse-fixtures
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.1 --country NG
 npx fintech-fraud-sim generate --users 1000 --country KE --platform remittance --payment-rails mobile_money,cashout
 npx fintech-fraud-sim generate --config ./fraud-sim.config.json --format ndjson
 npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --patterns mule,account_takeover,velocity_abuse
+npx fintech-fraud-sim generate --users 5000 --fraud-rate 0.12 --patterns mule_account,structuring,layering --pattern-weights '{"mule_account":4,"structuring":2,"layering":1}'
 npx fintech-fraud-sim generate --users 2000 --fraud-rate 0.12 --patterns fraud_ring,mule_account --format json --out ./ring-fixtures
 npx fintech-fraud-sim generate --use-case crypto_exchange --format ndjson --out ./aml-fixtures
 npx fintech-fraud-sim preview --use-case social_payments --limit 3 --pretty
@@ -30,12 +32,16 @@ npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmar
 npx fintech-fraud-sim benchmark --suite cross-border-remittance --users 10000 --out ./remittance-benchmark
 npx fintech-fraud-sim ml-export --input ./uk-fincrime-benchmark --target transactions --out ./ml-training
 npx fintech-fraud-sim ml-export --input ./data --target users --split 0.75 --out ./user-risk-training
+npx fintech-fraud-sim ml-export --input ./data --target transactions --format json --split 0.7 --validation-split 0.15 --stratify --out ./model-ready
 npx fintech-fraud-sim evaluate --truth ./uk-fincrime-benchmark/transactions.json --predictions ./model-predictions.csv --pretty
 npx fintech-fraud-sim report --input ./uk-fincrime-benchmark --suite uk-fincrime --format html
 npx fintech-fraud-sim dashboard --input ./uk-fincrime-benchmark --out ./uk-fincrime-dashboard.html
 npx fintech-fraud-sim graph-export --input ./ring-fixtures --format csv --out ./fraud-graph
 npx fintech-fraud-sim graph-export --input ./ring-fixtures --format cypher --out ./fraud-graph.cypher
+npx fintech-fraud-sim rules-init --template aml --out ./rules.json --pretty
 npx fintech-fraud-sim rules-test --input ./uk-fincrime-benchmark --rules ./rules.json --pretty
+npx fintech-fraud-sim validate --input ./uk-fincrime-benchmark --pretty
+npx fintech-fraud-sim serve --input ./uk-fincrime-benchmark --port 3333
 npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty
 npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 ```
@@ -57,7 +63,7 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | --- | --- | --- |
 | `--users <number>` | `1000` | Number of synthetic users to generate. |
 | `--fraud-rate <number>` | `0.05` | Fraction of users marked as fraud, between `0` and `1`. |
-| `--format <csv\|json\|ndjson\|sql\|both\|all>` | `both` | Output file format. `both` writes CSV and JSON; `all` writes CSV, JSON, NDJSON, and SQL inserts. |
+| `--format <csv\|json\|ndjson\|sql\|parquet\|both\|all>` | `both` | Output file format. `both` writes CSV and JSON; `all` writes CSV, JSON, NDJSON, SQL inserts, and Parquet fallback files. |
 | `--out <path>` | `./output` | Output directory. |
 | `--config <path>` | none | JSON config file with generation options. Explicit CLI flags override config values. |
 | `--country <code>` | `NG` | Default 2-letter country code. |
@@ -66,6 +72,7 @@ npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo
 | `--platform <name>` | none | Platform preset: `fintech`, `marketplace`, `crypto`, `social`, `gaming`, `lending`, or `remittance`. |
 | `--payment-rails <list>` | profile/platform default | Comma-separated payment rails such as `bank_transfer`, `card`, `mobile_money`, `sepa`, `swift`, `crypto_wallet`, `cashout`, or `payout`. |
 | `--patterns <list>` | `all` | Comma-separated fraud patterns. `mule` is accepted as an alias for `mule_account`; `fraud_ring` creates linked users with shared devices and beneficiaries. |
+| `--pattern-weights <json>` | none | JSON object mapping fraud patterns to numeric weights, for example `{"mule_account":4,"structuring":2}`. |
 | `--use-case <name>` | none | Apply production-oriented defaults for a product domain. Explicit flags override preset defaults. |
 | `--seed <value>` | none | String or number seed for deterministic output. |
 | `--transactions-min <number>` | `1` | Minimum transactions per non-fraud user. |
@@ -103,6 +110,11 @@ Use `--config` when you want a reusable generation setup:
   "platform": "remittance",
   "paymentRails": ["mobile_money", "cashout", "bank_transfer"],
   "patterns": ["mule_account", "cross_border_anomaly", "beneficiary_burst"],
+  "patternWeights": {
+    "mule_account": 4,
+    "cross_border_anomaly": 2,
+    "beneficiary_burst": 1
+  },
   "transactionsMin": 1,
   "transactionsMax": 12
 }
@@ -129,7 +141,7 @@ Prints or exports JSON Schema files for the generated dataset.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--target <users\|accounts\|devices\|beneficiaries\|merchants\|transactions\|summary\|all>` | `all` | Schema target to print or export. |
+| `--target <users\|accounts\|devices\|beneficiaries\|merchants\|transactions\|events\|summary\|all>` | `all` | Schema target to print or export. |
 | `--out <path>` | none | Directory to write schema files. Prints to stdout when omitted. |
 | `--pretty` | `false` | Format schema JSON with indentation. |
 
@@ -159,6 +171,7 @@ Use `scenario` to turn a natural-language fraud, AML, fintech, or AI-risk prompt
 ```bash
 npx fintech-fraud-sim scenario "UK-Nigeria remittance mule cashout with beneficiary bursts" --out ./ai-scenario --seed demo --pretty
 npx fintech-fraud-sim scenario "adversarial crypto exchange KYC abuse and cross-border withdrawal risk" --plan-only --pretty
+npx fintech-fraud-sim scenario "10k users with 20% fraud, mostly structuring and layering, max 45 transactions" --plan-only --pretty
 ```
 
 The command infers:
@@ -174,7 +187,7 @@ fraud intensity
 transaction volume
 ```
 
-When data is generated, the output directory includes `scenario_plan.json` alongside the normal generated files. The scenario plan explains the prompt, inferred signals, selected options, and rationale so teams can show how a natural-language AI prompt became a reproducible fraud benchmark.
+When data is generated, the output directory includes `scenario_plan.json` alongside the normal generated files. The scenario plan explains the prompt, inferred signals, selected options, and rationale so teams can show how a natural-language AI prompt became a reproducible fraud benchmark. Scenario prompts also understand common numeric hints such as `10k users`, `20% fraud`, and `max 45 transactions`.
 
 ### UK + Global Fraud Benchmark Suite
 
@@ -216,6 +229,7 @@ Export generated JSON data as ML-ready train/test feature matrices and labels:
 ```bash
 npx fintech-fraud-sim ml-export --input ./uk-fincrime-benchmark --target transactions --out ./ml-training
 npx fintech-fraud-sim ml-export --input ./data --target users --split 0.75 --out ./user-risk-training
+npx fintech-fraud-sim ml-export --input ./data --target transactions --format json --split 0.7 --validation-split 0.15 --stratify --out ./model-ready
 ```
 
 The command writes:
@@ -228,7 +242,9 @@ y_test.csv
 feature_metadata.json
 ```
 
-`transactions` predicts `is_suspicious`; `users` predicts `is_fraud`. The exporter uses numeric features and one-hot encoded categorical fields while excluding direct target/leakage fields such as `fraud_pattern`, `recommended_action`, `reason_codes`, and generated risk scores.
+`transactions` predicts `is_suspicious`; `users` predicts `is_fraud`. The exporter uses numeric features and one-hot encoded categorical fields while excluding direct target/leakage fields such as `fraud_pattern`, `recommended_action`, `reason_codes`, and generated risk scores by default.
+
+ML export supports `--format csv|json`, `--validation-split`, `--stratify`, and `--include-leakage-fields` for debugging rule/model behavior. When `--validation-split` is set, the command also writes `X_validation` and `y_validation` files.
 
 ### `evaluate`
 
@@ -289,6 +305,18 @@ npx fintech-fraud-sim graph-export --input ./ring-fixtures --format graphml --ou
 
 `json`, `cypher`, and `graphml` write a single file. `csv` writes `nodes.csv`, `edges.csv`, and `graph_summary.json` to the output directory. Graph nodes include users, accounts, devices, beneficiaries, merchants, transactions, and fraud networks. Edges connect ownership, device use, beneficiary additions, transaction initiation, payment targets, merchant activity, and network links.
 
+### `rules-init`
+
+Write a starter JSON rule pack before running `rules-test`:
+
+```bash
+npx fintech-fraud-sim rules-init --template aml --out ./rules.json --pretty
+npx fintech-fraud-sim rules-init --template app-fraud --out ./app-rules.json
+npx fintech-fraud-sim rules-init --template marketplace --out ./marketplace-rules.json
+```
+
+Templates are intentionally small and editable. They give teams a working baseline for AML monitoring, app fraud controls, and marketplace trust workflows.
+
 ### `rules-test`
 
 Run a JSON rule pack against generated transactions:
@@ -326,6 +354,26 @@ Supported operators are `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `c
 
 The output includes matched transactions, rule/action breakdowns, precision, recall, F1 score, false positives, and false negatives against the generated `is_suspicious` labels.
 
+### `validate`
+
+Validate a generated JSON output directory before using it in tests, dashboards, or model pipelines:
+
+```bash
+npx fintech-fraud-sim validate --input ./uk-fincrime-benchmark --pretty
+```
+
+Validation checks duplicate IDs, broken user/account/device/beneficiary/merchant references, invalid risk scores, invalid fraud patterns, summary count drift, and event references. It exits with a non-zero status when validation errors are found.
+
+### `serve`
+
+Serve a generated JSON dataset through a dependency-free local HTTP API:
+
+```bash
+npx fintech-fraud-sim serve --input ./uk-fincrime-benchmark --port 3333
+```
+
+Available endpoints include `/summary`, `/users`, `/accounts`, `/devices`, `/beneficiaries`, `/merchants`, `/transactions`, `/events`, and `/risk/:transactionId`.
+
 ## Output Files
 
 Depending on `--format`, the CLI writes:
@@ -337,12 +385,14 @@ devices.csv
 beneficiaries.csv
 merchants.csv
 transactions.csv
+events.csv
 users.json
 accounts.json
 devices.json
 beneficiaries.json
 merchants.json
 transactions.json
+events.json
 summary.json
 users.ndjson
 accounts.ndjson
@@ -350,11 +400,16 @@ devices.ndjson
 beneficiaries.ndjson
 merchants.ndjson
 transactions.ndjson
+events.ndjson
 summary.ndjson
 dataset.sql
+users.parquet
+transactions.parquet
+events.parquet
+parquet_manifest.json
 ```
 
-Parquet is intentionally not emitted yet; it is planned for a later data/ML-team focused release.
+Parquet output currently uses a dependency-free fallback writer: files use `.parquet` names but contain columnar JSON payloads plus `parquet_manifest.json`. This keeps the `--format parquet` workflow available without native dependencies; replace the writer with a binary Parquet integration before loading these files into strict Parquet-only tools.
 
 `summary.json` includes:
 
@@ -407,6 +462,12 @@ Parquet is intentionally not emitted yet; it is planned for a later data/ML-team
 
 `transaction_id`, `user_id`, `account_id`, `timestamp`, `amount`, `currency`, `payment_rail`, `channel`, `beneficiary_id`, `beneficiary_country`, `merchant_id`, `device_id`, `ip_country`, `status`, `is_suspicious`, `fraud_pattern`, `risk_score`, `recommended_action`, `reason_codes`, `network_id`.
 
+## Generated Event Fields
+
+`event_id`, `event_type`, `timestamp`, `user_id`, `entity_id`, `entity_type`, `risk_score`, `recommended_action`, `is_suspicious`, `fraud_pattern`, `reason_codes`, `network_id`.
+
+Events are derived from the generated users, KYC attempts, devices, beneficiaries, transactions, and rule-style decisions. They are useful for stream processors, sequence models, replay tests, and fraud-control demos that need more than static transaction rows.
+
 ## Risk Scoring
 
 Generated users and transactions include a `risk_score` from `0` to `100` and a `recommended_action`:
@@ -430,6 +491,14 @@ Generated users and transactions include a `risk_score` from `0` to `100` and a 
 | `cross_border_anomaly` | Declared country differs from IP or beneficiary country. |
 | `beneficiary_burst` | Many new beneficiaries added within 24 hours. |
 | `fraud_ring` | Coordinated accounts linked by a shared `network_id`, shared devices, shared beneficiaries, and clustered cashout behavior. |
+| `synthetic_identity` | New identity with repeated KYC friction and inconsistent identity signals. |
+| `friendly_fraud` | Customer-like behavior that later produces disputes, reversals, or chargebacks. |
+| `promo_abuse` | Low-value high-frequency activity designed to exploit incentives or referral rewards. |
+| `merchant_collusion` | Suspicious users and high-risk merchants linked through repeated routed payments. |
+| `refund_abuse` | Refund-heavy behavior with repeat reversals and merchant interactions. |
+| `sanctions_false_positive` | Synthetic watchlist-like review signals without real sanctions or real people. |
+| `structuring` | Repeated transactions intentionally kept below review thresholds. |
+| `layering` | Rapid movement across rails, beneficiaries, or corridors to mimic AML layering behavior. |
 
 ### Fraud Rings and Networked Fraud
 
@@ -505,13 +574,42 @@ const dataset = generateDataset({
   currency: 'NGN',
   platform: 'fintech',
   paymentRails: ['bank_transfer', 'wallet_transfer', 'card'],
-  patterns: ['mule_account', 'account_takeover'],
+  patterns: ['mule_account', 'account_takeover', 'structuring'],
+  patternWeights: {
+    mule_account: 4,
+    account_takeover: 2,
+    structuring: 1
+  },
   seed: 'demo',
   transactionsMin: 1,
   transactionsMax: 20,
   pretty: false,
   useCase: 'consumer_fintech'
 });
+```
+
+Validate generated data in code:
+
+```ts
+import { generateDataset, validateDataset } from 'fintech-fraud-sim';
+
+const dataset = generateDataset({
+  users: 500,
+  fraudRate: 0.1,
+  format: 'json',
+  out: './output',
+  country: 'GB',
+  currency: 'GBP',
+  patterns: ['structuring', 'layering'],
+  transactionsMin: 1,
+  transactionsMax: 12,
+  pretty: false
+});
+
+const validation = validateDataset(dataset);
+if (!validation.valid) {
+  console.error(validation.issues);
+}
 ```
 
 Use presets directly when you want realistic defaults that still stay fully deterministic with a seed:
