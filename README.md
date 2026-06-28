@@ -48,7 +48,7 @@ npx fintech-fraud-sim schema --target all --out ./schemas --pretty
 
 ## Browser Demo
 
-Open `demo/index.html` in a browser to see a responsive Vue CDN + Tailwind static playground for the simulator. The demo includes CTAs, persona presets, a synthetic-only promise, workflow cards, light/dark mode, scenario presets, generation controls, pattern and rail toggles, output feature switches, KPI cards, CLI/config copy, sample-output tabs, a mini fraud graph, fraud-pattern mix, transaction exploration, generated-file previews, and per-transaction risk explanations without requiring a server or build step.
+Open [fintech-fraud-sim.vercel.app](https://fintech-fraud-sim.vercel.app/) to see a responsive Vue CDN + Tailwind static playground for the simulator. The demo includes CTAs, persona presets, a synthetic-only promise, workflow cards, light/dark mode, scenario presets, generation controls, pattern and rail toggles, output feature switches, KPI cards, CLI/config copy, sample-output tabs, a mini fraud graph, fraud-pattern mix, transaction exploration, generated-file previews, and per-transaction risk explanations without requiring a server or build step.
 
 Local development:
 
