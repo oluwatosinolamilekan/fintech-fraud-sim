@@ -14,7 +14,7 @@ export {
   writeGraphExportFromDirectory
 } from './graph.js';
 export type { FraudGraph, GraphEdge, GraphExportFormat, GraphNode } from './graph.js';
-export { readRulePack, simulateRules, simulateRulesFromDirectory } from './rules.js';
+export { parseRulePack, readRulePack, simulateRules, simulateRulesFromDirectory } from './rules.js';
 export type {
   RuleCondition,
   RuleMatch,

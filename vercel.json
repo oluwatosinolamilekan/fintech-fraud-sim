@@ -3,5 +3,5 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": "demo",
-  "cleanUrls": true
+  "cleanUrls": false
 }
