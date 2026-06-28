@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="fintech-fraud-sim generates synthetic fintech fraud data for safer QA, fraud operations, compliance demos, dashboards, and model prototypes.">
+  <meta name="description" content="fintech-fraud-sim is a TypeScript CLI that generates realistic, synthetic-only fintech fraud data for safer QA, fraud operations, AML/compliance demos, dashboards, and machine-learning prototypes. No real PII, fully deterministic with seeds.">
+  <meta name="keywords" content="fraud, fintech, synthetic data, AML, risk, CLI, fraud simulation, machine learning, compliance, KYC">
+  <meta name="author" content="Lamidi Olamilekan">
+  <meta property="og:title" content="fintech-fraud-sim | Synthetic fraud data for safer testing">
+  <meta property="og:description" content="Generate realistic synthetic fintech fraud datasets for QA, fraud ops, AML demos, dashboards, and ML — without touching real customer data.">
+  <meta property="og:type" content="website">
   <title>fintech-fraud-sim | Synthetic fraud data for safer testing</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -24,32 +29,62 @@
       }
     };
   </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    /* offset anchored sections so the sticky header doesn't cover headings */
+    [id] { scroll-margin-top: 84px; }
+    .copy-btn:active { transform: scale(0.97); }
+  </style>
 </head>
 <body class="min-h-screen bg-paper text-ink antialiased">
-  <main>
+
+  <!-- ============ STICKY NAV ============ -->
+  <header class="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
+      <a href="#top" class="flex items-center gap-2 font-black tracking-tight">
+        <span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-teal-650 text-sm font-black text-white">f</span>
+        fintech-fraud-sim
+      </a>
+      <nav class="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
+        <a href="#quickstart" class="hover:text-teal-650">Quick start</a>
+        <a href="#commands" class="hover:text-teal-650">Commands</a>
+        <a href="#patterns" class="hover:text-teal-650">Fraud patterns</a>
+        <a href="#use-cases" class="hover:text-teal-650">Use cases</a>
+        <a href="#faq" class="hover:text-teal-650">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a href="https://www.npmjs.com/package/fintech-fraud-sim" class="hidden text-sm font-bold text-slate-600 hover:text-teal-650 sm:inline">npm</a>
+        <a href="./playground" class="inline-flex h-9 items-center justify-center rounded-md bg-teal-650 px-4 text-sm font-bold text-white transition hover:bg-teal-700">Playground</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
     <section class="relative overflow-hidden border-b border-line bg-white">
-      <div class="absolute inset-x-0 top-0 h-2 bg-teal-650"></div>
-      <div class="mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-10">
+      <div class="absolute inset-x-0 top-0 h-1.5 bg-teal-650"></div>
+      <div class="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-10">
         <div>
           <p class="text-sm font-bold uppercase tracking-[0.22em] text-teal-650">Synthetic fraud simulation CLI</p>
           <h1 class="mt-4 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">
             Build safer fraud systems without touching real customer data.
           </h1>
           <p class="mt-5 max-w-2xl text-lg leading-8 text-muted">
-            fintech-fraud-sim generates realistic synthetic fintech users, accounts, devices, beneficiaries, merchants, transactions, events, risk scores, fraud patterns, reports, and exports for QA, fraud operations, AML demos, dashboards, and model prototypes.
+            <strong>fintech-fraud-sim</strong> is a TypeScript command-line tool that generates realistic synthetic fintech users, accounts, devices, beneficiaries, merchants, transactions, events, risk scores, fraud patterns, reports, and exports — for QA, fraud operations, AML demos, dashboards, and model prototypes.
           </p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="./playground.html" class="inline-flex h-12 items-center justify-center rounded-md bg-teal-650 px-5 text-sm font-bold text-white shadow-soft transition hover:bg-teal-700">
-              Launch interactive playground
+            <a href="#quickstart" class="inline-flex h-12 items-center justify-center rounded-md bg-teal-650 px-5 text-sm font-bold text-white shadow-soft transition hover:bg-teal-700">
+              Get started in 60 seconds
             </a>
-            <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim#readme" class="inline-flex h-12 items-center justify-center rounded-md border border-line bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
-              Read the docs
+            <a href="./playground" class="inline-flex h-12 items-center justify-center rounded-md border border-line bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+              Launch interactive playground
             </a>
           </div>
           <div class="mt-8 grid gap-3 text-sm font-semibold text-slate-700 sm:grid-cols-3">
-            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">Synthetic only, no real PII</div>
-            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">Deterministic fixtures with seeds</div>
-            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">JSON, CSV, NDJSON, SQL, Parquet</div>
+            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">✓ Synthetic only, no real PII</div>
+            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">✓ Deterministic fixtures with seeds</div>
+            <div class="rounded-md border border-line bg-slate-50 px-4 py-3">✓ JSON, CSV, NDJSON, SQL, Parquet</div>
           </div>
         </div>
 
@@ -61,13 +96,16 @@
             </div>
             <span class="rounded-full bg-teal-400/15 px-3 py-1 text-xs font-bold text-teal-100">CLI</span>
           </div>
-          <pre class="mt-5 overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-black/35 p-4 text-sm leading-6 text-slate-100"><code>npx fintech-fraud-sim generate \
+          <div class="group relative mt-5">
+            <button class="copy-btn absolute right-2 top-2 rounded bg-white/10 px-2 py-1 text-xs font-bold text-slate-200 transition hover:bg-white/20" data-copy="npx fintech-fraud-sim generate --users 5000 --fraud-rate 0.12 --use-case bank_aml --patterns mule_account,structuring,layering --format all --out ./fraud-fixtures">Copy</button>
+            <pre class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-black/35 p-4 text-sm leading-6 text-slate-100"><code>npx fintech-fraud-sim generate \
   --users 5000 \
   --fraud-rate 0.12 \
   --use-case bank_aml \
   --patterns mule_account,structuring,layering \
   --format all \
   --out ./fraud-fixtures</code></pre>
+          </div>
           <div class="mt-5 grid gap-3 sm:grid-cols-2">
             <div class="rounded-md bg-white/5 p-4">
               <strong class="block text-2xl">5k</strong>
@@ -78,8 +116,8 @@
               <span class="text-sm text-slate-300">Configurable fraud rate</span>
             </div>
             <div class="rounded-md bg-white/5 p-4">
-              <strong class="block text-2xl">Rules</strong>
-              <span class="text-sm text-slate-300">Reason codes and actions</span>
+              <strong class="block text-2xl">17</strong>
+              <span class="text-sm text-slate-300">Built-in fraud patterns</span>
             </div>
             <div class="rounded-md bg-white/5 p-4">
               <strong class="block text-2xl">Graph</strong>
@@ -90,6 +128,7 @@
       </div>
     </section>
 
+    <!-- ============ WHAT / WHY / IMPACT ============ -->
     <section class="mx-auto grid max-w-7xl gap-5 px-5 py-14 sm:px-8 md:grid-cols-3 lg:px-10">
       <article class="rounded-lg border border-line bg-white p-5 shadow-soft">
         <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">What it does</span>
@@ -102,56 +141,455 @@
         <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">Why it matters</span>
         <h2 class="mt-4 text-xl font-bold">Reduces risky test data habits</h2>
         <p class="mt-2 text-sm leading-6 text-muted">
-          Teams can test dashboards, review queues, rule engines, APIs, reports, and ML pipelines without copying production records or exposing sensitive identifiers.
+          Teams test dashboards, review queues, rule engines, APIs, reports, and ML pipelines without copying production records or exposing sensitive identifiers.
         </p>
       </article>
       <article class="rounded-lg border border-line bg-white p-5 shadow-soft">
         <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">Impact</span>
         <h2 class="mt-4 text-xl font-bold">Speeds up fraud product work</h2>
         <p class="mt-2 text-sm leading-6 text-muted">
-          Product, data, compliance, QA, and engineering teams get repeatable fixtures that make demos clearer, regressions easier, and fraud-risk workflows faster to validate.
+          Product, data, compliance, QA, and engineering teams get repeatable fixtures that make demos clearer, regressions easier, and risk workflows faster to validate.
         </p>
       </article>
     </section>
 
-    <section class="border-y border-line bg-white">
-      <div class="mx-auto grid max-w-7xl gap-6 px-5 py-14 sm:px-8 lg:grid-cols-[.85fr_1.15fr] lg:px-10">
-        <div>
-          <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Built for many teams</p>
-          <h2 class="mt-3 text-3xl font-black tracking-tight">One simulator, many risk workflows.</h2>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <div class="rounded-md border border-line bg-slate-50 p-4">
-            <strong>Fraud Ops</strong>
-            <p class="mt-1 text-sm text-muted">Generate review queues, reason codes, and analyst-ready examples.</p>
-          </div>
-          <div class="rounded-md border border-line bg-slate-50 p-4">
-            <strong>ML Teams</strong>
-            <p class="mt-1 text-sm text-muted">Export training data, feature metadata, splits, and evaluation fixtures.</p>
-          </div>
-          <div class="rounded-md border border-line bg-slate-50 p-4">
-            <strong>Compliance</strong>
-            <p class="mt-1 text-sm text-muted">Demo AML typologies, suspicious activity, reports, and graph links.</p>
-          </div>
-          <div class="rounded-md border border-line bg-slate-50 p-4">
-            <strong>QA Engineers</strong>
-            <p class="mt-1 text-sm text-muted">Seed repeatable edge cases for APIs, exports, validation, and dashboards.</p>
+    <!-- ============ SAFETY CALLOUT ============ -->
+    <section id="safety" class="border-y border-line bg-teal-50/60">
+      <div class="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-650 text-lg font-black text-white">!</span>
+          <div>
+            <h2 class="text-xl font-bold">Synthetic-only safety promise</h2>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+              All generated data is <strong>synthetic</strong>. It contains no real names, phone numbers, emails, BVNs, NINs, bank account numbers, or any real personal data. Identifiers are fabricated and labels like <code class="rounded bg-white px-1 py-0.5 text-xs">bvn_like_id</code> or <code class="rounded bg-white px-1 py-0.5 text-xs">synthetic_bvn_check</code> are intentionally fictional. Use it for testing, education, and fraud-model prototyping only — never as a stand-in for production data or a real watchlist.
+            </p>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- ============ QUICK START ============ -->
+    <section id="quickstart" class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+      <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Quick start</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight">Up and running in three steps</h2>
+      <p class="mt-3 max-w-2xl text-muted">Requires <strong>Node.js 22 or newer</strong>. No build step or database is needed — everything runs locally.</p>
+
+      <div class="mt-8 grid gap-5 lg:grid-cols-3">
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-teal-650 text-sm font-black text-white">1</span>
+            <h3 class="font-bold">Run with npx</h3>
+          </div>
+          <p class="mt-2 text-sm text-muted">No install required — run the latest version directly.</p>
+          <div class="group relative mt-3">
+            <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim --help">Copy</button>
+            <pre class="overflow-x-auto rounded-md bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim --help</code></pre>
+          </div>
+        </div>
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-teal-650 text-sm font-black text-white">2</span>
+            <h3 class="font-bold">Preview a sample</h3>
+          </div>
+          <p class="mt-2 text-sm text-muted">Print a small sample to your terminal without writing files.</p>
+          <div class="group relative mt-3">
+            <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim preview --users 20 --fraud-rate 0.15 --limit 5 --pretty">Copy</button>
+            <pre class="overflow-x-auto rounded-md bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim preview \
+  --users 20 --fraud-rate 0.15 \
+  --limit 5 --pretty</code></pre>
+          </div>
+        </div>
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-teal-650 text-sm font-black text-white">3</span>
+            <h3 class="font-bold">Generate a dataset</h3>
+          </div>
+          <p class="mt-2 text-sm text-muted">Write full CSV + JSON fixtures to an output directory.</p>
+          <div class="group relative mt-3">
+            <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim generate --users 1000 --fraud-rate 0.08 --seed demo --out ./data">Copy</button>
+            <pre class="overflow-x-auto rounded-md bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim generate \
+  --users 1000 --fraud-rate 0.08 \
+  --seed demo --out ./data</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 rounded-lg border border-line bg-white p-5 shadow-soft">
+        <h3 class="font-bold">Local development</h3>
+        <p class="mt-1 text-sm text-muted">Clone the repo and build from source if you want to extend it.</p>
+        <div class="group relative mt-3">
+          <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npm install&#10;npm run build&#10;npm test&#10;npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo">Copy</button>
+          <pre class="overflow-x-auto rounded-md bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>npm install
+npm run build
+npm test
+npm run dev -- generate --users 100 --fraud-rate 0.1 --seed demo</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMMANDS ============ -->
+    <section id="commands" class="border-y border-line bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Command reference</p>
+        <h2 class="mt-3 text-3xl font-black tracking-tight">One CLI, the whole fraud-data workflow.</h2>
+        <p class="mt-3 max-w-3xl text-muted">From generation to validation, model export, evaluation, dashboards, and a local API — every step has a dedicated command.</p>
+
+        <div class="mt-8 overflow-x-auto rounded-lg border border-line">
+          <table class="w-full min-w-[640px] border-collapse text-sm">
+            <thead class="bg-slate-50 text-left">
+              <tr>
+                <th class="border-b border-line px-4 py-3 font-bold">Command</th>
+                <th class="border-b border-line px-4 py-3 font-bold">What it does</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">generate</td><td class="px-4 py-3 text-muted">Generate a full synthetic dataset and write it to disk.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">preview</td><td class="px-4 py-3 text-muted">Print a small sample to stdout without writing files.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">scenario</td><td class="px-4 py-3 text-muted">Turn a natural-language prompt into a deterministic dataset config.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">benchmark / benchmarks</td><td class="px-4 py-3 text-muted">Run repeatable UK + global fraud benchmark suites with impact reports.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">ml-export</td><td class="px-4 py-3 text-muted">Export train/test/validation feature matrices and labels for ML.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">evaluate</td><td class="px-4 py-3 text-muted">Score model predictions against generated ground truth.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">report</td><td class="px-4 py-3 text-muted">Build an economic impact report (JSON + HTML) from a dataset.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">dashboard</td><td class="px-4 py-3 text-muted">Build a self-contained interactive HTML dashboard — no server.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">graph-export</td><td class="px-4 py-3 text-muted">Export a fraud network graph as JSON, CSV, Cypher, or GraphML.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">rules-init / rules-test</td><td class="px-4 py-3 text-muted">Scaffold and run JSON rule packs against generated transactions.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">validate</td><td class="px-4 py-3 text-muted">Check a dataset for duplicate IDs, broken references, and drift.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">serve</td><td class="px-4 py-3 text-muted">Serve a dataset through a dependency-free local HTTP API.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">schema</td><td class="px-4 py-3 text-muted">Print or export JSON Schema files for every entity type.</td></tr>
+              <tr><td class="px-4 py-3 font-mono font-semibold text-teal-700">profiles / platforms / use-cases</td><td class="px-4 py-3 text-muted">List built-in country profiles, platform presets, and use-case presets.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- generate options -->
+        <h3 class="mt-12 text-xl font-bold">Key <code class="font-mono text-teal-700">generate</code> options</h3>
+        <div class="mt-4 overflow-x-auto rounded-lg border border-line">
+          <table class="w-full min-w-[680px] border-collapse text-sm">
+            <thead class="bg-slate-50 text-left">
+              <tr>
+                <th class="border-b border-line px-4 py-3 font-bold">Option</th>
+                <th class="border-b border-line px-4 py-3 font-bold">Default</th>
+                <th class="border-b border-line px-4 py-3 font-bold">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--users</td><td class="px-4 py-3 text-muted">1000</td><td class="px-4 py-3 text-muted">Number of synthetic users to generate.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--fraud-rate</td><td class="px-4 py-3 text-muted">0.05</td><td class="px-4 py-3 text-muted">Fraction of users marked as fraud, between 0 and 1.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--format</td><td class="px-4 py-3 text-muted">both</td><td class="px-4 py-3 text-muted">csv, json, ndjson, sql, parquet, both, or all.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--out</td><td class="px-4 py-3 text-muted">./output</td><td class="px-4 py-3 text-muted">Output directory.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--country</td><td class="px-4 py-3 text-muted">NG</td><td class="px-4 py-3 text-muted">Default 2-letter country code (NG, US, GB, EU, KE, GH, ZA).</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--platform</td><td class="px-4 py-3 text-muted">none</td><td class="px-4 py-3 text-muted">fintech, marketplace, crypto, social, gaming, lending, remittance.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--patterns</td><td class="px-4 py-3 text-muted">all</td><td class="px-4 py-3 text-muted">Comma-separated fraud patterns to include.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--pattern-weights</td><td class="px-4 py-3 text-muted">none</td><td class="px-4 py-3 text-muted">JSON mapping patterns to numeric weights.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--use-case</td><td class="px-4 py-3 text-muted">none</td><td class="px-4 py-3 text-muted">Apply production-oriented defaults for a product domain.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--seed</td><td class="px-4 py-3 text-muted">none</td><td class="px-4 py-3 text-muted">String/number seed for fully deterministic output.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--config</td><td class="px-4 py-3 text-muted">none</td><td class="px-4 py-3 text-muted">JSON config file; explicit CLI flags override config values.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">--pretty</td><td class="px-4 py-3 text-muted">false</td><td class="px-4 py-3 text-muted">Format JSON output with indentation.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- recipe examples -->
+        <h3 class="mt-12 text-xl font-bold">Copy-paste recipes</h3>
+        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+          <div class="rounded-lg border border-line bg-paper p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-teal-650">AML benchmark with impact report</p>
+            <div class="group relative mt-2">
+              <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim benchmark --suite uk-fincrime --out ./uk-fincrime-benchmark --seed demo">Copy</button>
+              <pre class="overflow-x-auto rounded-md bg-slate-950 p-3 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim benchmark \
+  --suite uk-fincrime \
+  --out ./uk-fincrime-benchmark --seed demo</code></pre>
+            </div>
+          </div>
+          <div class="rounded-lg border border-line bg-paper p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-teal-650">Natural-language scenario</p>
+            <div class="group relative mt-2">
+              <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy='npx fintech-fraud-sim scenario "UK-Nigeria remittance mule cashout with beneficiary bursts" --out ./ai-scenario --seed demo --pretty'>Copy</button>
+              <pre class="overflow-x-auto rounded-md bg-slate-950 p-3 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim scenario \
+  "UK-Nigeria remittance mule cashout \
+   with beneficiary bursts" \
+  --out ./ai-scenario --seed demo --pretty</code></pre>
+            </div>
+          </div>
+          <div class="rounded-lg border border-line bg-paper p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-teal-650">ML-ready train/test export</p>
+            <div class="group relative mt-2">
+              <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim ml-export --input ./data --target transactions --split 0.7 --validation-split 0.15 --stratify --out ./model-ready">Copy</button>
+              <pre class="overflow-x-auto rounded-md bg-slate-950 p-3 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim ml-export \
+  --input ./data --target transactions \
+  --split 0.7 --validation-split 0.15 \
+  --stratify --out ./model-ready</code></pre>
+            </div>
+          </div>
+          <div class="rounded-lg border border-line bg-paper p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-teal-650">Interactive dashboard</p>
+            <div class="group relative mt-2">
+              <button class="copy-btn absolute right-2 top-2 rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-200" data-copy="npx fintech-fraud-sim dashboard --input ./uk-fincrime-benchmark --out ./uk-fincrime-dashboard.html">Copy</button>
+              <pre class="overflow-x-auto rounded-md bg-slate-950 p-3 text-xs leading-6 text-slate-100"><code>npx fintech-fraud-sim dashboard \
+  --input ./uk-fincrime-benchmark \
+  --out ./uk-fincrime-dashboard.html</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FRAUD PATTERNS ============ -->
+    <section id="patterns" class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+      <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Fraud patterns</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight">17 built-in typologies</h2>
+      <p class="mt-3 max-w-3xl text-muted">Each pattern injects characteristic signals and reason codes so detection systems have something realistic to catch. Combine them with <code class="font-mono text-teal-700">--patterns</code> and tune the mix with <code class="font-mono text-teal-700">--pattern-weights</code>.</p>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">mule_account</p><p class="mt-1 text-sm text-muted">New account, high beneficiary count, frequent funds movement.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">account_takeover</p><p class="mt-1 text-sm text-muted">Device change, IP country mismatch, failed login spike.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">velocity_abuse</p><p class="mt-1 text-sm text-muted">Many transactions in a short period, often below thresholds.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">kyc_abuse</p><p class="mt-1 text-sm text-muted">Failed KYC attempts, reused device, inconsistent country data.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">chargeback_risk</p><p class="mt-1 text-sm text-muted">Prior chargebacks and high-value transactions.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">transaction_spike</p><p class="mt-1 text-sm text-muted">Transaction amount far above the user's baseline.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">cross_border_anomaly</p><p class="mt-1 text-sm text-muted">Declared country differs from IP or beneficiary country.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">beneficiary_burst</p><p class="mt-1 text-sm text-muted">Many new beneficiaries added within 24 hours.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">fraud_ring</p><p class="mt-1 text-sm text-muted">Coordinated accounts sharing network_id, devices, beneficiaries.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">synthetic_identity</p><p class="mt-1 text-sm text-muted">New identity with repeated KYC friction and inconsistent signals.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">friendly_fraud</p><p class="mt-1 text-sm text-muted">Customer-like behavior that later produces disputes/reversals.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">promo_abuse</p><p class="mt-1 text-sm text-muted">Low-value high-frequency activity exploiting incentives.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">merchant_collusion</p><p class="mt-1 text-sm text-muted">Suspicious users and high-risk merchants linked by routed payments.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">refund_abuse</p><p class="mt-1 text-sm text-muted">Refund-heavy behavior with repeat reversals.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">sanctions_false_positive</p><p class="mt-1 text-sm text-muted">Synthetic watchlist-like review signals — no real sanctions.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">structuring</p><p class="mt-1 text-sm text-muted">Repeated transactions intentionally kept below review thresholds.</p></div>
+        <div class="rounded-lg border border-line bg-white p-4 shadow-soft"><p class="font-mono text-sm font-bold text-teal-700">layering</p><p class="mt-1 text-sm text-muted">Rapid movement across rails/beneficiaries to mimic AML layering.</p></div>
+      </div>
+
+      <!-- risk scoring -->
+      <h3 class="mt-12 text-xl font-bold">Risk scoring and recommended actions</h3>
+      <p class="mt-2 max-w-3xl text-muted">Every user and transaction carries a <code class="font-mono text-teal-700">risk_score</code> from 0–100 mapped to a recommended action, so you can test allow / review / block flows end to end.</p>
+      <div class="mt-4 grid gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">allow · 0–44</span>
+          <p class="mt-3 text-sm text-muted">Low-risk records for normal test traffic.</p>
+        </div>
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">review · 45–74</span>
+          <p class="mt-3 text-sm text-muted">Queues for manual review, rules testing, dashboard triage.</p>
+        </div>
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">block · 75–100</span>
+          <p class="mt-3 text-sm text-muted">High-risk simulations for decline/block flows.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ USE CASES ============ -->
+    <section id="use-cases" class="border-y border-line bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Use-case presets</p>
+        <h2 class="mt-3 text-3xl font-black tracking-tight">Production-shaped defaults out of the box.</h2>
+        <p class="mt-3 max-w-3xl text-muted">Pass <code class="font-mono text-teal-700">--use-case &lt;name&gt;</code> to apply realistic defaults for a product domain. Explicit flags always override the preset.</p>
+
+        <div class="mt-8 overflow-x-auto rounded-lg border border-line">
+          <table class="w-full min-w-[680px] border-collapse text-sm">
+            <thead class="bg-slate-50 text-left">
+              <tr>
+                <th class="border-b border-line px-4 py-3 font-bold">Use case</th>
+                <th class="border-b border-line px-4 py-3 font-bold">Built for</th>
+                <th class="border-b border-line px-4 py-3 font-bold">Default signals</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              <tr><td class="px-4 py-3 font-mono text-teal-700">consumer_fintech</td><td class="px-4 py-3 text-muted">Neobank, wallet, mobile money, card issuing.</td><td class="px-4 py-3 text-muted">Mule, takeover, velocity abuse, beneficiary bursts.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">social_payments</td><td class="px-4 py-3 text-muted">Social commerce, creator payouts, messaging wallets.</td><td class="px-4 py-3 text-muted">Takeover, payout velocity, bursts, cross-border.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">crypto_exchange</td><td class="px-4 py-3 text-muted">Exchanges, fiat on-ramps, stablecoin wallets.</td><td class="px-4 py-3 text-muted">Cross-border, mule, KYC abuse, transaction spikes.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">marketplace_trust</td><td class="px-4 py-3 text-muted">Ecommerce, delivery, gig, classifieds.</td><td class="px-4 py-3 text-muted">Chargebacks, spikes, takeover, velocity abuse.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">bank_aml</td><td class="px-4 py-3 text-muted">Retail/business banks, AML monitoring vendors.</td><td class="px-4 py-3 text-muted">Mule, bursts, cross-border, spikes, fraud rings.</td></tr>
+              <tr><td class="px-4 py-3 font-mono text-teal-700">bnpl_credit</td><td class="px-4 py-3 text-muted">BNPL checkout, consumer lending, merchant financing.</td><td class="px-4 py-3 text-muted">Chargeback risk, spikes, KYC abuse, takeover.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-md border border-line bg-slate-50 p-4">
+            <strong>Fraud Ops</strong>
+            <p class="mt-1 text-sm text-muted">Review queues, reason codes, analyst-ready examples.</p>
+          </div>
+          <div class="rounded-md border border-line bg-slate-50 p-4">
+            <strong>ML Teams</strong>
+            <p class="mt-1 text-sm text-muted">Training data, feature metadata, splits, eval fixtures.</p>
+          </div>
+          <div class="rounded-md border border-line bg-slate-50 p-4">
+            <strong>Compliance</strong>
+            <p class="mt-1 text-sm text-muted">AML typologies, suspicious activity, graph links.</p>
+          </div>
+          <div class="rounded-md border border-line bg-slate-50 p-4">
+            <strong>QA Engineers</strong>
+            <p class="mt-1 text-sm text-muted">Repeatable edge cases for APIs, exports, dashboards.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OUTPUTS & DATA MODEL ============ -->
+    <section id="outputs" class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+      <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Outputs &amp; data model</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight">Seven linked entity types, many formats.</h2>
+      <p class="mt-3 max-w-3xl text-muted">Datasets are relational: users own accounts and devices, add beneficiaries, and transact with merchants. Shared <code class="font-mono text-teal-700">network_id</code>, <code class="font-mono text-teal-700">device_id</code>, and <code class="font-mono text-teal-700">beneficiary_id</code> values let graph systems reconstruct fraud rings.</p>
+
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <h3 class="font-bold">Entities generated</h3>
+          <ul class="mt-3 space-y-2 text-sm text-muted">
+            <li><strong class="text-ink">users</strong> — KYC status, device count, risk score, fraud pattern, reason codes.</li>
+            <li><strong class="text-ink">accounts</strong> — type, currency, balance, status, daily limit, fraud link.</li>
+            <li><strong class="text-ink">devices</strong> — type, OS, first/last seen, trust flag, network link.</li>
+            <li><strong class="text-ink">beneficiaries</strong> — country, bank code, recency, fraud link.</li>
+            <li><strong class="text-ink">merchants</strong> — category, country, risk tier, high-risk flag.</li>
+            <li><strong class="text-ink">transactions</strong> — amount, rail, channel, status, risk score, action.</li>
+            <li><strong class="text-ink">events</strong> — derived stream of KYC, device, beneficiary, and decision events.</li>
+          </ul>
+        </div>
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <h3 class="font-bold">Output formats</h3>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">CSV</span>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">JSON</span>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">NDJSON</span>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">SQL inserts</span>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Parquet (fallback)</span>
+          </div>
+          <p class="mt-4 text-sm text-muted">Use <code class="font-mono text-teal-700">--format both</code> for CSV + JSON, or <code class="font-mono text-teal-700">--format all</code> to write every format at once. A <code class="font-mono text-teal-700">summary.json</code> with dataset totals and fraud breakdowns is always included.</p>
+          <p class="mt-3 rounded-md bg-amber-50 p-3 text-xs leading-5 text-amber-800"><strong>Note:</strong> Parquet uses a dependency-free fallback writer — <code>.parquet</code> files contain columnar JSON plus a manifest. Swap in a binary Parquet integration before loading into strict Parquet-only tools.</p>
+        </div>
+      </div>
+
+      <!-- sample output -->
+      <h3 class="mt-12 text-xl font-bold">Sample transaction record</h3>
+      <div class="group relative mt-4">
+        <button class="copy-btn absolute right-2 top-2 rounded bg-white/10 px-2 py-1 text-xs font-bold text-slate-200 transition hover:bg-white/20" data-copy='{"transaction_id":"txn_616304_629760","user_id":"usr_693649_684895","amount":1250050.28,"currency":"NGN","payment_rail":"bank_transfer","status":"completed","is_suspicious":true,"fraud_pattern":"mule_account","risk_score":96,"recommended_action":"block","reason_codes":["NEW_ACCOUNT","HIGH_BENEFICIARY_COUNT","RAPID_FUNDS_MOVEMENT"]}'>Copy</button>
+        <pre class="overflow-x-auto rounded-lg bg-slate-950 p-5 text-xs leading-6 text-slate-100"><code>{
+  "transaction_id": "txn_616304_629760",
+  "user_id": "usr_693649_684895",
+  "account_id": "acct_883692_381742",
+  "timestamp": "2026-01-02T17:52:00.000Z",
+  "amount": 1250050.28,
+  "currency": "NGN",
+  "payment_rail": "bank_transfer",
+  "channel": "mobile_app",
+  "status": "completed",
+  "is_suspicious": true,
+  "fraud_pattern": "mule_account",
+  "risk_score": 96,
+  "recommended_action": "block",
+  "reason_codes": ["NEW_ACCOUNT", "HIGH_BENEFICIARY_COUNT", "RAPID_FUNDS_MOVEMENT"]
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- ============ PROGRAMMATIC API ============ -->
+    <section id="api" class="border-y border-line bg-white">
+      <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Programmatic API</p>
+        <h2 class="mt-3 text-3xl font-black tracking-tight">Import it as a TypeScript library.</h2>
+        <p class="mt-3 max-w-3xl text-muted">Generate and validate datasets in code — fully typed, deterministic with a seed, and ready to wire into test suites or pipelines.</p>
+        <div class="group relative mt-6">
+          <button class="copy-btn absolute right-2 top-2 rounded bg-white/10 px-2 py-1 text-xs font-bold text-slate-200 transition hover:bg-white/20" data-copy="import { generateDataset, validateDataset } from 'fintech-fraud-sim';&#10;&#10;const dataset = generateDataset({&#10;  users: 1000,&#10;  fraudRate: 0.08,&#10;  format: 'both',&#10;  out: './output',&#10;  country: 'NG',&#10;  patterns: ['mule_account', 'account_takeover', 'structuring'],&#10;  seed: 'demo',&#10;  useCase: 'consumer_fintech'&#10;});&#10;&#10;const validation = validateDataset(dataset);&#10;if (!validation.valid) console.error(validation.issues);">Copy</button>
+          <pre class="overflow-x-auto rounded-lg bg-slate-950 p-5 text-sm leading-6 text-slate-100"><code>import { generateDataset, validateDataset } from 'fintech-fraud-sim';
+
+const dataset = generateDataset({
+  users: 1000,
+  fraudRate: 0.08,
+  format: 'both',
+  out: './output',
+  country: 'NG',
+  patterns: ['mule_account', 'account_takeover', 'structuring'],
+  seed: 'demo',
+  useCase: 'consumer_fintech'
+});
+
+const validation = validateDataset(dataset);
+if (!validation.valid) console.error(validation.issues);</code></pre>
+        </div>
+        <p class="mt-4 text-sm text-muted">Library users can also register custom country profiles and platform presets via <code class="font-mono text-teal-700">defineGenerationPlugin</code> and <code class="font-mono text-teal-700">registerGenerationPlugin</code>.</p>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+      <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">FAQ</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight">Common questions</h2>
+      <div class="mt-8 divide-y divide-line rounded-lg border border-line bg-white shadow-soft">
+        <details class="group p-5" open>
+          <summary class="flex cursor-pointer items-center justify-between font-bold">Is any of this data real?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">No. Every record is synthetic. There are no real names, emails, phone numbers, government IDs, or account numbers. It is safe to commit fixtures to a repo or share in a demo.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between font-bold">Will I get the same data every run?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">Yes, if you pass a <code class="font-mono text-teal-700">--seed</code>. The same seed and options always produce byte-identical datasets, which makes regression tests and benchmarks reproducible.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between font-bold">What do I need to install?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">Just Node.js 22 or newer. Run it with <code class="font-mono text-teal-700">npx fintech-fraud-sim</code> — no global install required. Runtime dependencies are limited to <code class="font-mono text-teal-700">@faker-js/faker</code> and <code class="font-mono text-teal-700">commander</code>.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between font-bold">Can I use it for machine learning?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">Yes. <code class="font-mono text-teal-700">ml-export</code> writes train/test/validation feature matrices and labels, with optional stratified splits and leakage-field controls. Pair it with <code class="font-mono text-teal-700">evaluate</code> to score model predictions against ground truth.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between font-bold">Does it work outside Nigeria?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">Yes. Country profiles cover NG, US, GB, EU, KE, GH, and ZA, and platform presets and cross-border benchmark suites support UK and global corridors. You can also register your own profiles.</p>
+        </details>
+        <details class="group p-5">
+          <summary class="flex cursor-pointer items-center justify-between font-bold">Where do I report bugs or request features?<span class="text-teal-650 transition group-open:rotate-45">+</span></summary>
+          <p class="mt-3 text-sm leading-6 text-muted">Open an issue on the <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim/issues" class="font-semibold text-teal-650 underline">GitHub issue tracker</a>. The project is MIT licensed and contributions are welcome.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
     <section class="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
       <div class="rounded-lg bg-ink px-5 py-10 text-center text-white shadow-soft sm:px-8">
         <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-200">Ready to explore?</p>
         <h2 class="mx-auto mt-3 max-w-2xl text-3xl font-black tracking-tight">
           Open the playground and tune a complete fraud data scenario.
         </h2>
-        <a href="./playground.html" class="mt-7 inline-flex h-12 items-center justify-center rounded-md bg-teal-500 px-5 text-sm font-bold text-white transition hover:bg-teal-400">
-          Go to the playground
-        </a>
+        <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a href="./playground" class="inline-flex h-12 items-center justify-center rounded-md bg-teal-500 px-5 text-sm font-bold text-white transition hover:bg-teal-400">
+            Go to the playground
+          </a>
+          <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim#readme" class="inline-flex h-12 items-center justify-center rounded-md border border-white/20 px-5 text-sm font-bold text-white transition hover:bg-white/10">
+            Read the full docs
+          </a>
+        </div>
       </div>
     </section>
   </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="border-t border-line bg-white">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted sm:flex-row sm:px-8 lg:px-10">
+      <p>© <span id="year"></span> fintech-fraud-sim · MIT License · Synthetic data only.</p>
+      <div class="flex items-center gap-5 font-semibold">
+        <a href="https://www.npmjs.com/package/fintech-fraud-sim" class="hover:text-teal-650">npm</a>
+        <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim" class="hover:text-teal-650">GitHub</a>
+        <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim/blob/main/SECURITY.md" class="hover:text-teal-650">Security</a>
+        <a href="./playground" class="hover:text-teal-650">Playground</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Copy-to-clipboard for code blocks
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var text = btn.getAttribute('data-copy') || '';
+        navigator.clipboard.writeText(text).then(function () {
+          var original = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = original; }, 1500);
+        });
+      });
+    });
+  </script>
 </body>
 </html>
