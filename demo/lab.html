@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Live Lab — run the real fintech-fraud-sim generator in your browser. Tune options, generate deterministic synthetic fraud data, download it, test rules, and explore transactions. No server, no install.">
+  <title>Live Lab | fintech-fraud-sim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { ink:"#15202b", muted:"#5d6b7c", line:"#dce4ee", paper:"#f7fafc", teal:{650:"#0f766e"} },
+        boxShadow: { soft:"0 22px 70px rgba(21,32,43,0.12)" }
+      } }
+    };
+  </script>
+  <style>
+    [v-cloak] { display:none; }
+    html { scroll-behavior: smooth; }
+    .chip { cursor:pointer; user-select:none; }
+    table tbody tr { cursor:pointer; }
+    table tbody tr:hover { background:#f1f5f9; }
+    table tbody tr.is-selected { background:#e6fffa; }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen bg-paper text-ink antialiased">
+  <div id="app" v-cloak>
+
+    <!-- header -->
+    <header class="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
+      <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
+        <a href="./index.html" class="flex items-center gap-2 font-black tracking-tight">
+          <span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-teal-650 text-sm font-black text-white">f</span>
+          fintech-fraud-sim
+        </a>
+        <div class="flex items-center gap-3 text-sm font-semibold">
+          <span class="hidden rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700 sm:inline">Runs 100% in your browser</span>
+          <a href="./index.html" class="text-slate-600 hover:text-teal-650">Docs</a>
+          <a href="./playground.html" class="text-slate-600 hover:text-teal-650">Playground</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+
+      <!-- intro -->
+      <div class="border-b border-line pb-8">
+        <p class="text-sm font-bold uppercase tracking-[0.2em] text-teal-650">Live Lab</p>
+        <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Generate real synthetic fraud data — live.</h1>
+        <p class="mt-3 max-w-3xl text-muted">This page runs the <strong>exact same generator that powers the CLI</strong>, compiled to run in your browser. Tune the controls, hit Generate, and you get genuine deterministic data you can download, test rules against, and explore. Nothing is sent to a server.</p>
+      </div>
+
+      <!-- ============ TIER 1: CONTROLS + GENERATE ============ -->
+      <section class="mt-8 grid gap-6 lg:grid-cols-[360px_1fr]">
+
+        <!-- controls -->
+        <aside class="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <h2 class="text-lg font-bold">Generation controls</h2>
+          <p class="mt-1 text-xs text-muted">These mirror the CLI flags one-to-one.</p>
+
+          <div class="mt-5 space-y-5">
+            <label class="block">
+              <span class="text-sm font-semibold">Use case preset</span>
+              <select v-model="form.useCase" @change="applyUseCase" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm">
+                <option value="">— none (manual) —</option>
+                <option v-for="u in useCases" :key="u.name" :value="u.name">{{ u.label }}</option>
+              </select>
+            </label>
+
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold">Users</span>
+                <span class="text-sm font-mono text-teal-700">{{ number(form.users) }}</span>
+              </div>
+              <input v-model.number="form.users" type="range" min="50" max="2500" step="50" class="mt-2 w-full accent-teal-650">
+              <p class="mt-1 text-xs text-muted">Capped at 2,500 here so the browser stays snappy.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold">Fraud rate</span>
+                <span class="text-sm font-mono text-teal-700">{{ Math.round(form.fraudRate * 100) }}%</span>
+              </div>
+              <input v-model.number="form.fraudRate" type="range" min="0" max="0.5" step="0.01" class="mt-2 w-full accent-teal-650">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="text-sm font-semibold">Country</span>
+                <select v-model="form.country" @change="onCountryChange" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm">
+                  <option v-for="p in profiles" :key="p.code" :value="p.code">{{ p.code }} — {{ p.label }}</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="text-sm font-semibold">Currency</span>
+                <input v-model="form.currency" type="text" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm font-mono uppercase">
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="text-sm font-semibold">Txns min</span>
+                <input v-model.number="form.txMin" type="number" min="0" max="50" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm">
+              </label>
+              <label class="block">
+                <span class="text-sm font-semibold">Txns max</span>
+                <input v-model.number="form.txMax" type="number" min="1" max="60" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm">
+              </label>
+            </div>
+
+            <label class="block">
+              <span class="text-sm font-semibold">Seed</span>
+              <div class="mt-1 flex gap-2">
+                <input v-model="form.seed" type="text" placeholder="e.g. demo" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm font-mono">
+                <button type="button" @click="randomizeSeed" title="Random seed" class="rounded-md border border-line px-3 text-sm font-bold text-slate-600 hover:bg-slate-50">🎲</button>
+              </div>
+              <p class="mt-1 text-xs text-muted">Same seed + options = byte-identical data, every time.</p>
+            </label>
+
+            <div>
+              <span class="text-sm font-semibold">Fraud patterns</span>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  v-for="p in patterns" :key="p" type="button"
+                  @click="patternOn[p] = !patternOn[p]"
+                  class="chip rounded-full border px-2.5 py-1 text-xs font-semibold transition"
+                  :class="patternOn[p] ? 'bg-teal-650 text-white border-teal-650' : 'bg-white border-line text-slate-700'"
+                >{{ p }}</button>
+              </div>
+              <div class="mt-2 flex gap-3 text-xs font-semibold text-teal-700">
+                <button type="button" @click="selectAllPatterns" class="hover:underline">Select all</button>
+                <button type="button" @click="clearPatterns" class="hover:underline">Clear</button>
+              </div>
+            </div>
+
+            <button type="button" @click="generate" :disabled="generating"
+              class="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-teal-650 text-sm font-bold text-white transition hover:bg-teal-700 disabled:opacity-70">
+              <span v-if="generating" class="h-4 w-4 rounded-full border-2 border-white/40 border-t-white spin"></span>
+              {{ generating ? 'Generating…' : 'Generate dataset' }}
+            </button>
+          </div>
+        </aside>
+
+        <!-- results -->
+        <div class="space-y-6">
+
+          <!-- empty state -->
+          <div v-if="!dataset" class="flex h-full min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-line bg-white p-10 text-center">
+            <div class="text-4xl">⚙️</div>
+            <h3 class="mt-3 text-lg font-bold">Your dataset will appear here</h3>
+            <p class="mt-1 max-w-md text-sm text-muted">Pick a use case or set the controls, then hit <strong>Generate dataset</strong>. Everything below — KPIs, charts, the rules tester, and the transaction explorer — fills in with live data.</p>
+          </div>
+
+          <template v-if="dataset">
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div v-for="kpi in kpis" :key="kpi.label" class="rounded-lg border border-line bg-white p-4 shadow-soft">
+                <div class="text-xs text-muted">{{ kpi.label }}</div>
+                <div class="mt-1 text-2xl font-black">{{ kpi.value }}</div>
+              </div>
+            </div>
+
+            <!-- determinism + downloads -->
+            <div class="flex flex-col items-start justify-between gap-3 rounded-lg border border-line bg-white p-4 shadow-soft sm:flex-row sm:items-center">
+              <p class="text-sm text-muted">
+                <template v-if="seedUsed">
+                  Seed <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{{ seedUsed }}</code> — re-run with the same options for byte-identical data.
+                </template>
+                <template v-else>No seed set — output is randomized each run. Add a seed for reproducible data.</template>
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="d in downloads" :key="d.kind" type="button" @click="runDownload(d.kind)"
+                  class="rounded-md border border-line px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">↓ {{ d.label }}</button>
+              </div>
+            </div>
+
+            <!-- charts -->
+            <div class="grid gap-6 lg:grid-cols-2">
+              <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+                <h3 class="font-bold">Risk-score distribution</h3>
+                <p class="text-xs text-muted">Transaction risk scores bucketed into allow / review / block bands.</p>
+                <div class="mt-3"><canvas ref="riskCanvas" height="160"></canvas></div>
+              </div>
+              <div class="rounded-lg border border-line bg-white p-5 shadow-soft">
+                <h3 class="font-bold">Fraud pattern mix</h3>
+                <p class="text-xs text-muted">Fraud users generated per pattern.</p>
+                <div class="mt-3"><canvas ref="patternCanvas" height="160"></canvas></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <!-- ============ TIER 2: RULES TESTER ============ -->
+      <section v-if="dataset" class="mt-10">
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft sm:p-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Rules tester</p>
+              <h2 class="mt-1 text-2xl font-black tracking-tight">Write a rule pack, score it instantly.</h2>
+              <p class="mt-1 max-w-2xl text-sm text-muted">Edit the JSON, click Run, and see matched transactions plus precision / recall / F1 against the generated <code class="font-mono text-teal-700">is_suspicious</code> labels — the same engine as <code class="font-mono text-teal-700">rules-test</code>.</p>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" @click="resetRules" class="rounded-md border border-line px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Reset example</button>
+              <button type="button" @click="runRules" class="rounded-md bg-teal-650 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700">Run rules</button>
+            </div>
+          </div>
+
+          <div class="mt-5 grid gap-5 lg:grid-cols-2">
+            <div>
+              <textarea v-model="rulesText" spellcheck="false" class="h-72 w-full rounded-md border border-line bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-100"></textarea>
+              <p v-if="rulesError" class="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{{ rulesError }}</p>
+              <details class="mt-3 text-xs text-muted">
+                <summary class="cursor-pointer font-semibold text-slate-600">Available fields &amp; operators</summary>
+                <p class="mt-2 leading-5">Operators: <code class="font-mono">eq, ne, gt, gte, lt, lte, in, not_in, contains, exists</code>. Useful fields include <code class="font-mono">risk_score, amount, payment_rail, recommended_action, is_suspicious, country_mismatch, corridor, reason_code_count, user_kyc_status, user_account_age_days, user_device_count, user_failed_login_attempts_24h, user_beneficiary_count_24h, user_ip_country_mismatch</code>.</p>
+              </details>
+            </div>
+            <div>
+              <div v-if="!rulesResult" class="flex h-72 flex-col items-center justify-center rounded-md border border-dashed border-line text-center text-sm text-muted">
+                Run the rule pack to see results.
+              </div>
+              <div v-else>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="rounded-md border border-line bg-paper p-3 text-center"><div class="text-xs text-muted">Precision</div><div class="text-xl font-black text-teal-700">{{ pct(rulesResult.precision) }}</div></div>
+                  <div class="rounded-md border border-line bg-paper p-3 text-center"><div class="text-xs text-muted">Recall</div><div class="text-xl font-black text-teal-700">{{ pct(rulesResult.recall) }}</div></div>
+                  <div class="rounded-md border border-line bg-paper p-3 text-center"><div class="text-xs text-muted">F1 score</div><div class="text-xl font-black text-teal-700">{{ rulesResult.f1_score.toFixed(3) }}</div></div>
+                </div>
+                <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">Matched</span> <strong class="float-right">{{ number(rulesResult.matched_transactions) }}</strong></div>
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">Actually suspicious</span> <strong class="float-right">{{ number(rulesResult.actual_suspicious) }}</strong></div>
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">True positives</span> <strong class="float-right text-emerald-700">{{ number(rulesResult.true_positive) }}</strong></div>
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">False positives</span> <strong class="float-right text-rose-700">{{ number(rulesResult.false_positive) }}</strong></div>
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">False negatives</span> <strong class="float-right text-amber-700">{{ number(rulesResult.false_negative) }}</strong></div>
+                  <div class="rounded-md border border-line p-3"><span class="text-muted">True negatives</span> <strong class="float-right">{{ number(rulesResult.true_negative) }}</strong></div>
+                </div>
+                <div class="mt-3">
+                  <p class="text-xs font-semibold text-slate-600">Per-rule matches</p>
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <span v-for="(n, id) in rulesResult.rule_breakdown" :key="id" class="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">{{ id }}: {{ number(n) }}</span>
+                    <span v-if="!Object.keys(rulesResult.rule_breakdown).length" class="text-xs text-muted">No rules matched any transaction.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TIER 2: TRANSACTION EXPLORER ============ -->
+      <section v-if="dataset" class="mt-10">
+        <div class="rounded-lg border border-line bg-white p-5 shadow-soft sm:p-6">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p class="text-sm font-bold uppercase tracking-[0.18em] text-teal-650">Transaction explorer</p>
+              <h2 class="mt-1 text-2xl font-black tracking-tight">Search, filter, and inspect.</h2>
+            </div>
+            <p class="text-sm text-muted">{{ number(filteredTx.length) }} of {{ number(dataset.transactions.length) }} transactions match</p>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-3">
+            <input v-model="explorer.search" type="text" placeholder="Search id, user, pattern, rail…" class="min-w-[220px] flex-1 rounded-md border border-line px-3 py-2 text-sm">
+            <select v-model="explorer.action" class="rounded-md border border-line bg-white px-3 py-2 text-sm">
+              <option value="">All actions</option>
+              <option value="allow">allow</option>
+              <option value="review">review</option>
+              <option value="block">block</option>
+            </select>
+            <select v-model="explorer.pattern" class="rounded-md border border-line bg-white px-3 py-2 text-sm">
+              <option value="">All patterns</option>
+              <option v-for="p in patternFilterOptions" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <select v-model="explorer.suspicious" class="rounded-md border border-line bg-white px-3 py-2 text-sm">
+              <option value="">Suspicious: any</option>
+              <option value="true">Suspicious only</option>
+              <option value="false">Clean only</option>
+            </select>
+          </div>
+
+          <div class="mt-4 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+            <div class="overflow-x-auto rounded-lg border border-line">
+              <table class="w-full min-w-[560px] border-collapse text-sm">
+                <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th class="border-b border-line px-3 py-2">Transaction</th>
+                    <th class="border-b border-line px-3 py-2">Amount</th>
+                    <th class="border-b border-line px-3 py-2">Risk</th>
+                    <th class="border-b border-line px-3 py-2">Action</th>
+                    <th class="border-b border-line px-3 py-2">Pattern</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="t in pagedTx" :key="t.transaction_id" @click="selectTx(t.transaction_id)"
+                    class="border-b border-line" :class="{ 'is-selected': t.transaction_id === selectedTxId }">
+                    <td class="px-3 py-2 font-mono text-xs">{{ t.transaction_id }}</td>
+                    <td class="px-3 py-2">{{ t.currency }} {{ number(Math.round(t.amount)) }}</td>
+                    <td class="px-3 py-2 font-semibold">{{ t.risk_score }}</td>
+                    <td class="px-3 py-2"><span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="actionColor(t.recommended_action)">{{ t.recommended_action }}</span></td>
+                    <td class="px-3 py-2 text-xs">{{ t.fraud_pattern }}</td>
+                  </tr>
+                  <tr v-if="!pagedTx.length">
+                    <td colspan="5" class="px-3 py-6 text-center text-sm text-muted">No transactions match these filters.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="flex flex-col gap-2 border-t border-line px-3 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-muted">Showing {{ rangeText }} of {{ number(filteredTx.length) }}</p>
+                <div class="flex items-center gap-2">
+                  <label class="text-muted">Rows
+                    <select v-model.number="pageSize" class="ml-1 rounded border border-line px-2 py-1">
+                      <option :value="10">10</option>
+                      <option :value="25">25</option>
+                      <option :value="50">50</option>
+                      <option :value="100">100</option>
+                    </select>
+                  </label>
+                  <button type="button" @click="page = Math.max(1, page - 1)" :disabled="page <= 1"
+                    class="rounded border border-line px-2 py-1 font-semibold transition hover:bg-slate-50 disabled:opacity-40">Prev</button>
+                  <span class="font-semibold">Page {{ page }} / {{ totalPages }}</span>
+                  <button type="button" @click="page = Math.min(totalPages, page + 1)" :disabled="page >= totalPages"
+                    class="rounded border border-line px-2 py-1 font-semibold transition hover:bg-slate-50 disabled:opacity-40">Next</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- detail panel -->
+            <div class="rounded-lg border border-line bg-paper p-5">
+              <p v-if="!selectedTx" class="text-sm text-muted">Select a transaction to see why it was flagged.</p>
+              <div v-else>
+                <div class="flex items-center justify-between">
+                  <h3 class="font-mono text-sm font-bold">{{ selectedTx.transaction_id }}</h3>
+                  <span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="actionColor(selectedTx.recommended_action)">{{ selectedTx.recommended_action }}</span>
+                </div>
+                <p class="mt-2 text-sm text-muted">User <span class="font-mono">{{ selectedTx.user_id }}</span> sent
+                  <strong>{{ selectedTx.currency }} {{ number(Math.round(selectedTx.amount)) }}</strong> via {{ selectedTx.payment_rail }}
+                  on corridor {{ selectedTx.ip_country }}-{{ selectedTx.beneficiary_country }}.</p>
+                <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div class="rounded-md border border-line bg-white p-2"><span class="text-muted text-xs">Risk score</span><div class="text-lg font-black">{{ selectedTx.risk_score }}/100</div></div>
+                  <div class="rounded-md border border-line bg-white p-2"><span class="text-muted text-xs">Suspicious</span><div class="text-lg font-black">{{ selectedTx.is_suspicious ? 'yes' : 'no' }}</div></div>
+                  <div class="rounded-md border border-line bg-white p-2"><span class="text-muted text-xs">Pattern</span><div class="text-sm font-bold">{{ selectedTx.fraud_pattern }}</div></div>
+                  <div class="rounded-md border border-line bg-white p-2"><span class="text-muted text-xs">Status</span><div class="text-sm font-bold">{{ selectedTx.status }}</div></div>
+                </div>
+                <p class="mt-3 text-xs font-semibold text-slate-600">Reason codes</p>
+                <ul class="mt-1 flex flex-wrap gap-1.5">
+                  <li v-for="r in selectedTx.reason_codes" :key="r" class="rounded bg-white px-2 py-1 text-xs font-mono">{{ r }}</li>
+                  <li v-if="!selectedTx.reason_codes || !selectedTx.reason_codes.length" class="text-xs text-muted">No reason codes — clean transaction.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-line bg-white">
+      <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-muted sm:flex-row sm:px-8 lg:px-10">
+        <p>Live Lab · all data is synthetic and generated locally in your browser.</p>
+        <div class="flex gap-5 font-semibold">
+          <a href="./index.html" class="hover:text-teal-650">Docs</a>
+          <a href="https://www.npmjs.com/package/fintech-fraud-sim" class="hover:text-teal-650">npm</a>
+          <a href="https://github.com/oluwatosinolamilekan/fintech-fraud-sim" class="hover:text-teal-650">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import {
+      generateDataset, simulateRules, parseRulePack,
+      USE_CASE_PRESETS, listCountryProfiles, allPatterns
+    } from './fintech-fraud-sim.browser.js';
+
+    const { createApp } = Vue;
+
+    const PATTERNS = allPatterns();
+    const PROFILES = listCountryProfiles();
+    const DEFAULT_PATTERNS = ['mule_account', 'account_takeover', 'velocity_abuse', 'structuring', 'fraud_ring'];
+    const EXAMPLE_RULES = {
+      name: 'starter-fraud-rules',
+      rules: [
+        { id: 'high_risk_score', action: 'block', conditions: [{ field: 'risk_score', operator: 'gte', value: 75 }] },
+        { id: 'cross_border_high_value', action: 'review', conditions: [
+          { field: 'amount', operator: 'gte', value: 500000 },
+          { field: 'country_mismatch', operator: 'eq', value: true }
+        ] }
+      ]
+    };
+
+    const nf = new Intl.NumberFormat();
+
+    createApp({
+      data() {
+        const patternOn = {};
+        PATTERNS.forEach((p) => { patternOn[p] = DEFAULT_PATTERNS.includes(p); });
+        const currencyByCountry = {};
+        PROFILES.forEach((p) => { currencyByCountry[p.code] = p.currency; });
+        return {
+          page: 1,
+          pageSize: 25,
+          patterns: PATTERNS,
+          profiles: PROFILES,
+          currencyByCountry,
+          useCases: Object.values(USE_CASE_PRESETS).map((u) => ({ name: u.name, label: u.label })),
+          patternOn,
+          form: { useCase: '', users: 500, fraudRate: 0.08, country: 'NG', currency: 'NGN', txMin: 1, txMax: 12, seed: 'demo' },
+          generating: false,
+          dataset: null,
+          genMs: 0,
+          seedUsed: '',
+          rulesText: JSON.stringify(EXAMPLE_RULES, null, 2),
+          rulesError: '',
+          rulesResult: null,
+          explorer: { search: '', action: '', pattern: '', suspicious: '' },
+          selectedTxId: null,
+          downloads: [
+            { kind: 'transactions-json', label: 'transactions.json' },
+            { kind: 'transactions-csv', label: 'transactions.csv' },
+            { kind: 'users-csv', label: 'users.csv' },
+            { kind: 'dataset-json', label: 'full dataset.json' }
+          ]
+        };
+      },
+      computed: {
+        selectedPatterns() { return this.patterns.filter((p) => this.patternOn[p]); },
+        kpis() {
+          const s = this.dataset.summary;
+          return [
+            { label: 'Users', value: this.number(s.total_users) },
+            { label: 'Transactions', value: this.number(s.total_transactions) },
+            { label: 'Suspicious txns', value: this.number(s.suspicious_transactions_generated) },
+            { label: 'Fraud users', value: this.number(s.fraud_users_generated) },
+            { label: 'Fraud rings', value: this.number(s.fraud_networks_generated) },
+            { label: 'Generated in', value: this.genMs + ' ms' }
+          ];
+        },
+        patternFilterOptions() {
+          if (!this.dataset) return [];
+          return [...new Set(this.dataset.transactions.map((t) => t.fraud_pattern))].sort();
+        },
+        filteredTx() {
+          if (!this.dataset) return [];
+          const q = this.explorer.search.trim().toLowerCase();
+          const { action, pattern, suspicious } = this.explorer;
+          return this.dataset.transactions.filter((t) => {
+            if (action && t.recommended_action !== action) return false;
+            if (pattern && t.fraud_pattern !== pattern) return false;
+            if (suspicious && String(t.is_suspicious) !== suspicious) return false;
+            if (q && !(`${t.transaction_id} ${t.user_id} ${t.fraud_pattern} ${t.payment_rail}`.toLowerCase().includes(q))) return false;
+            return true;
+          });
+        },
+        totalPages() { return Math.max(1, Math.ceil(this.filteredTx.length / this.pageSize)); },
+        pagedTx() {
+          const start = (this.page - 1) * this.pageSize;
+          return this.filteredTx.slice(start, start + this.pageSize);
+        },
+        rangeText() {
+          if (!this.filteredTx.length) return '0';
+          const start = (this.page - 1) * this.pageSize;
+          return `${this.number(start + 1)}–${this.number(Math.min(start + this.pageSize, this.filteredTx.length))}`;
+        },
+        selectedTx() {
+          if (!this.dataset || !this.selectedTxId) return null;
+          return this.dataset.transactions.find((t) => t.transaction_id === this.selectedTxId) || null;
+        }
+      },
+      methods: {
+        number(n) { return nf.format(n); },
+        pct(v) { return (v * 100).toFixed(1) + '%'; },
+        actionColor(a) {
+          return a === 'block' ? 'text-rose-700 bg-rose-50'
+            : a === 'review' ? 'text-amber-700 bg-amber-50'
+            : 'text-emerald-700 bg-emerald-50';
+        },
+        randomizeSeed() { this.form.seed = Math.random().toString(36).slice(2, 8); },
+        selectAllPatterns() { this.patterns.forEach((p) => { this.patternOn[p] = true; }); },
+        clearPatterns() { this.patterns.forEach((p) => { this.patternOn[p] = false; }); },
+        onCountryChange() { this.form.currency = this.currencyByCountry[this.form.country] || this.form.currency; },
+        applyUseCase() {
+          if (!this.form.useCase) return;
+          const d = USE_CASE_PRESETS[this.form.useCase].defaults;
+          this.form.users = Math.min(2500, d.users);
+          this.form.fraudRate = d.fraudRate;
+          this.form.country = d.country;
+          this.form.currency = d.currency;
+          this.form.txMin = d.transactionsMin;
+          this.form.txMax = d.transactionsMax;
+          this.patterns.forEach((p) => { this.patternOn[p] = d.patterns.includes(p); });
+        },
+        generate() {
+          const patterns = this.selectedPatterns;
+          if (patterns.length === 0) { alert('Select at least one fraud pattern.'); return; }
+          const txMin = Math.max(0, this.form.txMin || 0);
+          const txMax = Math.max(1, this.form.txMax || 1);
+          if (txMin > txMax) { alert('Txns min cannot be greater than txns max.'); return; }
+
+          this.generating = true;
+          // defer so the spinner paints before the synchronous generation runs
+          setTimeout(() => {
+            try {
+              const seedRaw = (this.form.seed || '').trim();
+              const t0 = performance.now();
+              this.dataset = generateDataset({
+                users: this.form.users,
+                fraudRate: this.form.fraudRate,
+                format: 'json', out: '',
+                country: this.form.country,
+                currency: (this.form.currency || 'NGN').trim().toUpperCase(),
+                patterns,
+                transactionsMin: txMin,
+                transactionsMax: txMax,
+                pretty: false,
+                seed: seedRaw === '' ? undefined : seedRaw
+              });
+              this.genMs = Math.round(performance.now() - t0);
+              this.seedUsed = seedRaw;
+              this.selectedTxId = null;
+              this.rulesResult = null;
+              this.rulesError = '';
+              this.$nextTick(() => this.buildCharts());
+            } catch (err) {
+              alert('Generation failed: ' + (err && err.message ? err.message : err));
+            } finally {
+              this.generating = false;
+            }
+          }, 30);
+        },
+        buildCharts() {
+          const Chart = window.Chart;
+          // risk distribution
+          const buckets = new Array(10).fill(0);
+          this.dataset.transactions.forEach((t) => { buckets[Math.min(9, Math.floor(t.risk_score / 10))]++; });
+          const labels = buckets.map((_, i) => `${i * 10}-${i * 10 + 9}`);
+          const colors = buckets.map((_, i) => { const mid = i * 10 + 5; return mid >= 75 ? '#e11d48' : mid >= 45 ? '#d97706' : '#0f766e'; });
+          if (this._riskChart) this._riskChart.destroy();
+          this._riskChart = new Chart(this.$refs.riskCanvas, {
+            type: 'bar',
+            data: { labels, datasets: [{ data: buckets, backgroundColor: colors, borderRadius: 4 }] },
+            options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
+          });
+          // pattern mix
+          const entries = Object.entries(this.dataset.summary.fraud_pattern_breakdown).sort((a, b) => b[1] - a[1]);
+          if (this._patternChart) this._patternChart.destroy();
+          this._patternChart = new Chart(this.$refs.patternCanvas, {
+            type: 'bar',
+            data: { labels: entries.map((e) => e[0]), datasets: [{ data: entries.map((e) => e[1]), backgroundColor: '#0f766e', borderRadius: 4 }] },
+            options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+          });
+        },
+        selectTx(id) { this.selectedTxId = id; },
+        // ---- downloads ----
+        download(filename, text, type) {
+          const blob = new Blob([text], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = filename; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        },
+        toCsv(rows) {
+          if (!rows.length) return '';
+          const headers = Object.keys(rows[0]);
+          const esc = (v) => {
+            if (v === null || v === undefined) return '';
+            if (Array.isArray(v)) v = v.join('|');
+            const s = String(v);
+            return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+          };
+          return [headers.join(','), ...rows.map((r) => headers.map((h) => esc(r[h])).join(','))].join('\n');
+        },
+        runDownload(kind) {
+          if (!this.dataset) return;
+          if (kind === 'transactions-json') this.download('transactions.json', JSON.stringify(this.dataset.transactions, null, 2), 'application/json');
+          else if (kind === 'transactions-csv') this.download('transactions.csv', this.toCsv(this.dataset.transactions), 'text/csv');
+          else if (kind === 'users-csv') this.download('users.csv', this.toCsv(this.dataset.users), 'text/csv');
+          else if (kind === 'dataset-json') this.download('dataset.json', JSON.stringify(this.dataset, null, 2), 'application/json');
+        },
+        // ---- rules ----
+        resetRules() { this.rulesText = JSON.stringify(EXAMPLE_RULES, null, 2); this.rulesError = ''; },
+        runRules() {
+          if (!this.dataset) { alert('Generate a dataset first.'); return; }
+          this.rulesError = '';
+          let pack;
+          try {
+            pack = parseRulePack(JSON.parse(this.rulesText));
+          } catch (err) {
+            this.rulesError = (err && err.message) ? err.message : 'Invalid JSON or rule pack.';
+            this.rulesResult = null;
+            return;
+          }
+          this.rulesResult = simulateRules(this.dataset, pack);
+        }
+      },
+      watch: {
+        // reset to the first page whenever the result set or page size changes
+        filteredTx() { this.page = 1; },
+        pageSize() { this.page = 1; }
+      },
+      mounted() {
+        // auto-generate an initial dataset so the page isn't empty on load
+        this.generate();
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
